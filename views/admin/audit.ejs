@@ -1,0 +1,28 @@
+<% var title='Audit Log'; var activePage='audit'; %>
+<%- include('../layout') %>
+<div class="page-header">
+  <div><h1>📜 Audit Log</h1><p class="subtitle">Complete activity trail (last 500 entries)</p></div>
+  <a href="/admin" class="btn btn-secondary">← Dashboard</a>
+</div>
+<div class="card">
+  <% if(logs.length===0){ %><div class="empty-state"><p>No audit records yet.</p></div>
+  <% } else { %>
+  <table class="table">
+    <thead><tr><th>#</th><th>Quote #</th><th>Action</th><th>By</th><th>Username</th><th>IP</th><th>Timestamp</th></tr></thead>
+    <tbody>
+    <% logs.forEach(function(log){ %>
+      <tr>
+        <td class="text-muted"><%=log.id%></td>
+        <td><a href="/quotes/<%=log.quote_id%>" class="quote-link"><%=log.quote_number%></a></td>
+        <td><span class="audit-action"><%=log.action%></span></td>
+        <td><%=log.actor_name%></td><td class="text-muted">@<%=log.username%></td>
+        <td class="text-muted font-mono"><%=log.ip_address%></td>
+        <td class="text-muted"><%=new Date(log.timestamp).toLocaleString('en-IN')%></td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+  <div class="table-footer">Showing <%=logs.length%> entries</div>
+  <% } %>
+</div>
+<%- include('../layout_footer') %>

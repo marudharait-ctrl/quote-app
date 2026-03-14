@@ -1,0 +1,54 @@
+<% var title='Quotes'; var activePage='quotes';
+   var sc={draft:'badge-gray',sent:'badge-blue',accepted:'badge-green',rejected:'badge-red'}; %>
+<%- include('../layout') %>
+<div class="page-header">
+  <div><h1>Quotes</h1>
+    <p class="subtitle"><%= user.userRole==='admin'?'All quotes in the system':'Your quotes' %></p></div>
+  <a href="/quotes/new" class="btn btn-primary">➕ New Quote</a>
+</div>
+<div class="filter-bar">
+  <form method="GET" action="/quotes" class="filter-form">
+    <input type="text" name="search" placeholder="Search quote #, customer, company…"
+      value="<%= typeof search!=='undefined'&&search?search:'' %>" class="search-input">
+    <select name="status">
+      <option value="">All Status</option>
+      <option value="draft"    <%=typeof status!=='undefined'&&status==='draft'   ?'selected':''%>>Draft</option>
+      <option value="sent"     <%=typeof status!=='undefined'&&status==='sent'    ?'selected':''%>>Sent</option>
+      <option value="accepted" <%=typeof status!=='undefined'&&status==='accepted'?'selected':''%>>Accepted</option>
+      <option value="rejected" <%=typeof status!=='undefined'&&status==='rejected'?'selected':''%>>Rejected</option>
+    </select>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    <a href="/quotes" class="btn btn-ghost">Clear</a>
+  </form>
+</div>
+<div class="card">
+  <% if(quotes.length===0){ %>
+  <div class="empty-state"><div style="font-size:3rem">📋</div><h3>No quotes found</h3>
+    <p>Start by creating your first quote</p><a href="/quotes/new" class="btn btn-primary">Create Quote</a></div>
+  <% } else { %>
+  <table class="table">
+    <thead><tr><th>Quote #</th><th>Customer</th><th>Company</th><th>Size (W×L)</th>
+      <th>₹/Bag</th><th>₹/Kg</th><th>Status</th><th>Created By</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% quotes.forEach(function(q){ %>
+      <tr>
+        <td><a href="/quotes/<%=q.id%>" class="quote-link"><%=q.quote_number%></a></td>
+        <td><%=q.customer_name%></td><td><%=q.customer_company||'—'%></td>
+        <td><%=q.width_value%>×<%=q.length_value%> <%=q.width_unit%></td>
+        <td class="price-cell">₹<%=parseFloat(q.final_price_per_bag||0).toFixed(2)%></td>
+        <td class="price-cell">₹<%=parseFloat(q.final_price_per_kg||0).toFixed(2)%></td>
+        <td><span class="badge <%=sc[q.status]||'badge-gray'%>"><%=q.status%></span></td>
+        <td><%=q.creator_name%></td>
+        <td><%=new Date(q.created_at).toLocaleDateString('en-IN')%></td>
+        <td class="actions-cell">
+          <a href="/quotes/<%=q.id%>" class="btn-icon" title="View">👁</a>
+          <a href="/quotes/<%=q.id%>/edit" class="btn-icon" title="Edit">✏️</a>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+  <div class="table-footer">Showing <%=quotes.length%> quote<%=quotes.length!==1?'s':''%></div>
+  <% } %>
+</div>
+<%- include('../layout_footer') %>

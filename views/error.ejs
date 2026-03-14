@@ -1,0 +1,9 @@
+<% var title='Error'; var activePage=''; %>
+<%- include('layout') %>
+<div class="error-page">
+  <div class="error-icon">⚠️</div>
+  <h2><%= message %></h2>
+  <a href="javascript:history.back()" class="btn btn-secondary">← Go Back</a>
+  <a href="/quotes" class="btn btn-primary">Go to Quotes</a>
+</div>
+<%- include('layout_footer') %>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Quote System' %> — WovenBag</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<% if (typeof user !== 'undefined' && user && user.userId) { %>
+<nav class="navbar">
+  <div class="nav-brand">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 10h14M7 14h14M7 18h8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    WovenBag Quotes
+  </div>
+  <div class="nav-links">
+    <a href="/quotes" class="<%= typeof activePage !== 'undefined' && activePage === 'quotes' ? 'active' : '' %>">📋 Quotes</a>
+    <a href="/quotes/new" class="<%= typeof activePage !== 'undefined' && activePage === 'new' ? 'active' : '' %>">➕ New Quote</a>
+    <% if (user.userRole === 'admin') { %>
+    <a href="/admin" class="<%= typeof activePage !== 'undefined' && activePage === 'admin' ? 'active' : '' %>">⚙️ Admin</a>
+    <a href="/admin/audit" class="<%= typeof activePage !== 'undefined' && activePage === 'audit' ? 'active' : '' %>">📜 Audit</a>
+    <% } %>
+  </div>
+  <div class="nav-user">
+    <span class="avatar"><%= user.fullName.charAt(0).toUpperCase() %></span>
+    <span><%= user.fullName %></span>
+    <% if (user.userRole === 'admin') { %><span class="badge-admin">Admin</span><% } %>
+    <a href="/logout" class="btn-logout">Logout</a>
+  </div>
+</nav>
+<% } %>
+<main class="main-content">

@@ -1,0 +1,406 @@
+<%
+  var title = quote ? 'Edit Quote' : 'New Quote';
+  var activePage = quote ? 'quotes' : 'new';
+  var isEdit = !!quote;
+  function v(field, def) {
+    if (!quote) return def !== undefined ? def : '';
+    var val = quote[field];
+    return (val !== undefined && val !== null) ? String(val) : (def !== undefined ? String(def) : '');
+  }
+  function sel(field, opt, def) {
+    var cur = (quote && quote[field] !== undefined) ? quote[field] : def;
+    return String(cur) === String(opt) ? 'selected' : '';
+  }
+%>
+<%- include('../layout') %>
+
+<div class="page-header">
+  <div>
+    <h1><%= isEdit ? '✏️ Edit Quote — ' + quote.quote_number : '➕ New Quote' %></h1>
+    <p class="subtitle">Fill in product specifications to calculate pricing</p>
+  </div>
+  <a href="<%= isEdit ? '/quotes/' + quote.id : '/quotes' %>" class="btn btn-secondary">← Back</a>
+</div>
+
+<% if (error) { %>
+<div class="alert alert-danger">⚠️ <%= error %></div>
+<% } %>
+
+<div class="quote-form-layout">
+  <form id="quoteForm" method="POST" action="<%= isEdit ? '/quotes/' + quote.id + '/edit' : '/quotes' %>">
+
+    <!-- Customer -->
+    <div class="card form-section">
+      <h2 class="section-title">👤 Customer Information</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Customer Name <span class="req">*</span></label>
+          <input type="text" name="customer_name" required value="<%= v('customer_name','') %>" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="customer_email" value="<%= v('customer_email','') %>" placeholder="customer@email.com">
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" name="customer_company" value="<%= v('customer_company','') %>" placeholder="Company name">
+        </div>
+      </div>
+    </div>
+
+    <!-- Dimensions -->
+    <div class="card form-section">
+      <h2 class="section-title">📐 Product Dimensions</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Width <span class="req">*</span></label>
+          <div class="input-with-select">
+            <input type="number" name="width_value" step="0.01" required value="<%= v('width_value','19') %>" id="width_value">
+            <select name="width_unit" id="width_unit">
+              <option <%= sel('width_unit','Inch','Inch') %>>Inch</option>
+              <option <%= sel('width_unit','MM','Inch') %>>MM</option>
+              <option <%= sel('width_unit','CM','Inch') %>>CM</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Length <span class="req">*</span></label>
+          <div class="input-with-select">
+            <input type="number" name="length_value" step="0.01" required value="<%= v('length_value','33') %>" id="length_value">
+            <select name="length_unit" id="length_unit">
+              <option <%= sel('length_unit','Inch','Inch') %>>Inch</option>
+              <option <%= sel('length_unit','MM','Inch') %>>MM</option>
+              <option <%= sel('length_unit','CM','Inch') %>>CM</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fabric GSM / Grammage <span class="req">*</span></label>
+          <div class="input-with-select">
+            <input type="number" name="fabric_gsm" step="0.01" required value="<%= v('fabric_gsm','3.5') %>" id="fabric_gsm">
+            <select name="fabric_type" id="fabric_type">
+              <option <%= sel('fabric_type','Grammage','Grammage') %>>Grammage</option>
+              <option <%= sel('fabric_type','GSM','Grammage') %>>GSM</option>
+              <option <%= sel('fabric_type','denier','Grammage') %>>Denier</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Filler Content (%)</label>
+          <input type="number" name="filler_pct" step="0.1" min="0" max="100" value="<%= v('filler_pct','35') %>">
+        </div>
+        <div class="form-group">
+          <label>Ink GSM (without white)</label>
+          <input type="number" name="ink_gsm" step="0.1" min="0" value="<%= v('ink_gsm','1') %>">
+        </div>
+        <div class="form-group">
+          <label>Bag Style</label>
+          <select name="bag_style">
+            <option <%= sel('bag_style','Flexo Bag','Flexo Bag') %>>Flexo Bag</option>
+            <option <%= sel('bag_style','Plain bag','Flexo Bag') %>>Plain Bag</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lamination -->
+    <div class="card form-section">
+      <h2 class="section-title">🔧 Lamination</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Include Lamination</label>
+          <select name="lamination_included">
+            <option <%= sel('lamination_included','Yes','Yes') %>>Yes</option>
+            <option <%= sel('lamination_included','No','Yes') %>>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lamination Side</label>
+          <select name="lamination_side">
+            <option <%= sel('lamination_side','Double','Double') %>>Double</option>
+            <option <%= sel('lamination_side','Single','Double') %>>Single</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lamination GSM</label>
+          <input type="number" name="lamination_gsm" step="0.1" value="<%= v('lamination_gsm','17') %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- BOPP -->
+    <div class="card form-section">
+      <h2 class="section-title">🎨 BOPP Printing</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Include BOPP</label>
+          <select name="bopp_included">
+            <option <%= sel('bopp_included','Yes','Yes') %>>Yes</option>
+            <option <%= sel('bopp_included','No','Yes') %>>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BOPP Side</label>
+          <select name="bopp_side">
+            <option <%= sel('bopp_side','Double','Double') %>>Double</option>
+            <option <%= sel('bopp_side','Single','Double') %>>Single</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BOPP Micron</label>
+          <input type="number" name="bopp_micron" step="0.1" value="<%= v('bopp_micron','12') %>">
+        </div>
+        <div class="form-group">
+          <label>BOPP Type</label>
+          <select name="bopp_type">
+            <option <%= sel('bopp_type','Double','Double') %>>Double</option>
+            <option <%= sel('bopp_type','Single','Double') %>>Single</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BOPP Finish</label>
+          <select name="bopp_finish">
+            <option <%= sel('bopp_finish','Gloss','Gloss') %>>Gloss</option>
+            <option <%= sel('bopp_finish','MAT','Gloss') %>>MAT</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Back Side Flexo Printing</label>
+          <select name="back_flexo">
+            <option <%= sel('back_flexo','Yes','Yes') %>>Yes</option>
+            <option <%= sel('back_flexo','No','Yes') %>>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BOPP with White Coating</label>
+          <select name="bopp_with_white">
+            <option <%= sel('bopp_with_white','No','No') %>>No</option>
+            <option <%= sel('bopp_with_white','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metalize -->
+    <div class="card form-section">
+      <h2 class="section-title">✨ Metalize</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Include Metalize</label>
+          <select name="metalize_included">
+            <option <%= sel('metalize_included','No','No') %>>No</option>
+            <option <%= sel('metalize_included','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Metalize Side</label>
+          <select name="metalize_side">
+            <option <%= sel('metalize_side','Double','Double') %>>Double</option>
+            <option <%= sel('metalize_side','Single','Double') %>>Single</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Metalize Micron</label>
+          <input type="number" name="metalize_micron" step="0.1" value="<%= v('metalize_micron','15') %>">
+        </div>
+        <div class="form-group">
+          <label>Metalize Window Wash</label>
+          <select name="perforation">
+            <option <%= sel('perforation','No','No') %>>No</option>
+            <option <%= sel('perforation','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Options -->
+    <div class="card form-section">
+      <h2 class="section-title">⚙️ Additional Options</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Handle</label>
+          <select name="handle_included">
+            <option <%= sel('handle_included','Yes','Yes') %>>Yes</option>
+            <option <%= sel('handle_included','No','Yes') %>>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Valve</label>
+          <select name="valve">
+            <option <%= sel('valve','No','No') %>>No</option>
+            <option <%= sel('valve','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hamming</label>
+          <select name="hamming">
+            <option <%= sel('hamming','No','No') %>>No</option>
+            <option <%= sel('hamming','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tuber</label>
+          <select name="tuber">
+            <option <%= sel('tuber','No','No') %>>No</option>
+            <option <%= sel('tuber','Yes','No') %>>Yes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liner -->
+    <div class="card form-section">
+      <h2 class="section-title">🛍️ Liner</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Include Liner</label>
+          <select name="liner_included">
+            <option <%= sel('liner_included','Yes','Yes') %>>Yes</option>
+            <option <%= sel('liner_included','No','Yes') %>>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Liner Width</label>
+          <input type="number" name="liner_width" step="0.01" value="<%= v('liner_width', v('width_value','19')) %>">
+        </div>
+        <div class="form-group">
+          <label>Liner Length</label>
+          <input type="number" name="liner_length" step="0.01" value="<%= v('liner_length', v('length_value','36')) %>">
+        </div>
+        <div class="form-group">
+          <label>Liner Thickness</label>
+          <div class="input-with-select">
+            <input type="number" name="liner_thickness" step="1" value="<%= v('liner_thickness','50') %>">
+            <select name="liner_thickness_unit">
+              <option <%= sel('liner_thickness_unit','Micron','Micron') %>>Micron</option>
+              <option <%= sel('liner_thickness_unit','GSM','Micron') %>>GSM</option>
+              <option <%= sel('liner_thickness_unit','Gauge','Micron') %>>Gauge</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Freight & Pricing -->
+    <div class="card form-section">
+      <h2 class="section-title">🚚 Freight &amp; Pricing</h2>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Freight</label>
+          <select name="freight">
+            <option <%= sel('freight','Ex Factory','Ex Factory') %>>Ex Factory</option>
+            <option <%= sel('freight','FOR-East','Ex Factory') %>>FOR-East</option>
+            <option <%= sel('freight','FOR-West','Ex Factory') %>>FOR-West</option>
+            <option <%= sel('freight','FOR-North','Ex Factory') %>>FOR-North</option>
+            <option <%= sel('freight','FOR-South','Ex Factory') %>>FOR-South</option>
+            <option <%= sel('freight','Local','Ex Factory') %>>Local</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pricing Type</label>
+          <select name="pricing_type">
+            <option <%= sel('pricing_type','Premium','Premium') %>>Premium</option>
+            <option <%= sel('pricing_type','Discount','Premium') %>>Discount</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Discount / Premium %</label>
+          <input type="number" name="discount_pct" step="0.1" min="0" max="100" value="<%= v('discount_pct','0') %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card form-section">
+      <h2 class="section-title">📝 Notes</h2>
+      <div class="form-group">
+        <textarea name="notes" rows="3" placeholder="Internal notes or special instructions…"><%= v('notes','') %></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" id="calcBtn" class="btn btn-secondary btn-lg">🔢 Calculate Price</button>
+      <button type="submit" class="btn btn-primary btn-lg">💾 <%= isEdit ? 'Update Quote' : 'Save Quote' %></button>
+    </div>
+  </form>
+
+  <!-- Live Price Panel -->
+  <div class="price-panel" id="pricePanel">
+    <div class="price-panel-header">
+      <h3>💰 Price Estimate</h3>
+      <span class="live-badge">Live</span>
+    </div>
+    <div id="priceResults" class="price-results">
+      <p class="price-placeholder">Fill in the form and click <strong>Calculate Price</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+var existingResult = <%- result ? JSON.stringify(result) : 'null' %>;
+
+function buildPriceHTML(r) {
+  return '<div class="price-summary">' +
+    '<div class="price-main">' +
+    '<div class="price-item highlight"><span>Final Price / Bag</span><strong>₹' + r.finalRatePerBag.toFixed(2) + '</strong></div>' +
+    '<div class="price-item highlight"><span>Final Price / Kg</span><strong>₹' + r.finalRatePerKg.toFixed(2) + '</strong></div>' +
+    '</div><hr>' +
+    '<h4>Raw Material Costs</h4>' +
+    '<div class="price-item"><span>PP Fabric</span><span>₹' + r.ppFabricAmt.toFixed(2) + '/bag (' + r.fabricWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item"><span>Lamination</span><span>₹' + r.lamCost.toFixed(2) + '/bag (' + r.lamWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item"><span>BOPP+Ink</span><span>₹' + r.boppCost.toFixed(2) + '/bag (' + r.boppWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item"><span>Metalize</span><span>₹' + r.metCost.toFixed(2) + '/bag (' + r.metWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item"><span>Handle</span><span>₹' + r.handleCost.toFixed(2) + '/bag</span></div>' +
+    '<div class="price-item"><span>Liner</span><span>₹' + r.linerCost.toFixed(2) + '/bag (' + r.linerWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item total"><span>RM Total / Bag</span><span>₹' + r.rmPricePerBag.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Total Weight</span><span>' + r.totalWtWithLiner.toFixed(1) + ' gm</span></div>' +
+    '<hr><h4>Conversion Costs (₹/Kg)</h4>' +
+    '<div class="price-item"><span>Width Surcharge</span><span>₹' + r.convDetails.widthSurcharge.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Bag Style</span><span>₹' + r.convDetails.bagStyle.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>BOPP Type</span><span>₹' + r.convDetails.boppType.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Back Flexo</span><span>₹' + r.convDetails.backFlexo.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Finish (MAT)</span><span>₹' + r.convDetails.finish.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Metalize</span><span>₹' + r.convDetails.metalizeBase.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Handle Conv</span><span>₹' + r.convDetails.handleConv.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Liner Conv</span><span>₹' + r.convDetails.linerConv.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>Freight</span><span>₹' + r.convDetails.freight.toFixed(2) + '</span></div>' +
+    '<div class="price-item total"><span>Total Conversion</span><span>₹' + r.convDetails.total.toFixed(2) + '/Kg</span></div>' +
+    '<hr>' +
+    '<div class="price-item"><span>SSP Rate / Kg</span><span>₹' + r.sspRatePerKg.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>SSP Rate / Bag</span><span>₹' + r.sspRatePerBag.toFixed(2) + '</span></div>' +
+    '<div class="price-item"><span>' + r.pricingType + ' %</span><span>' + r.discount + '%</span></div>' +
+    '</div>';
+}
+
+if (existingResult) {
+  document.getElementById('priceResults').innerHTML = buildPriceHTML(existingResult);
+}
+
+document.getElementById('calcBtn').addEventListener('click', async function() {
+  var btn = document.getElementById('calcBtn');
+  btn.textContent = '⏳ Calculating…';
+  btn.disabled = true;
+  var form = document.getElementById('quoteForm');
+  var data = new FormData(form);
+  var body = new URLSearchParams(data).toString();
+  try {
+    var res = await fetch('/quotes/calculate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
+    });
+    var json = await res.json();
+    if (json.ok) {
+      document.getElementById('priceResults').innerHTML = buildPriceHTML(json.result);
+    } else {
+      document.getElementById('priceResults').innerHTML = '<div class="alert alert-danger">Error: ' + json.error + '</div>';
+    }
+  } catch(e) {
+    document.getElementById('priceResults').innerHTML = '<div class="alert alert-danger">Network error</div>';
+  }
+  btn.textContent = '🔢 Calculate Price';
+  btn.disabled = false;
+});
+</script>
+
+<%- include('../layout_footer') %>
