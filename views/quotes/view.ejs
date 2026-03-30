@@ -69,7 +69,9 @@
         <tr><td>Handle</td><td>₹<%=result.handleCost.toFixed(2)%>/bag</td></tr>
         <tr><td>Liner</td><td>₹<%=result.linerCost.toFixed(2)%>/bag (<%=result.linerWt.toFixed(1)%> gm)</td></tr>
         <tr class="row-total"><td><strong>RM Total / Bag</strong></td><td><strong>₹<%=result.rmPricePerBag.toFixed(2)%></strong></td></tr>
-        <tr class="row-total"><td><strong>RM Rate / Kg</strong></td><td><strong>₹<%=result.rmRatePerKg.toFixed(2)%></strong></td></tr>
+        <tr class="row-total"><td><strong>Total Weight</strong></td><td><strong><%=result.totalWtWithLiner.toFixed(2)%> gm</strong></td></tr>
+        <tr class="row-total"><td><strong>RM Cost per Kg</strong></td><td><strong>₹<%= (result.totalWtWithLiner > 0 ? (result.rmPricePerBag * 1000 / result.totalWtWithLiner).toFixed(2) : '0.00') %></strong></td></tr>
+        <tr class="row-total"><td>RM Rate / Kg (engine)</td><td>₹<%=result.rmRatePerKg.toFixed(2)%></td></tr>
         <tr class="table-section-head"><td colspan="2">Conversion Costs (₹/Kg)</td></tr>
         <tr><td>Width Surcharge</td><td>₹<%=result.convDetails.widthSurcharge.toFixed(2)%></td></tr>
         <tr><td>Bag Style</td><td>₹<%=result.convDetails.bagStyle.toFixed(2)%></td></tr>
@@ -82,13 +84,17 @@
         <tr><td>Hamming</td><td>₹<%=result.convDetails.hamming.toFixed(2)%></td></tr>
         <tr><td>Tuber</td><td>₹<%=result.convDetails.tuber.toFixed(2)%></td></tr>
         <tr><td>Handle Conv.</td><td>₹<%=result.convDetails.handleConv.toFixed(2)%></td></tr>
-        <tr><td>Liner Conv.</td><td>₹<%=result.convDetails.linerConv.toFixed(2)%></td></tr>
+        <tr><td>Liner Adjustment Factor</td><td>₹<%=result.convDetails.linerConv.toFixed(2)%></td></tr>
         <tr><td>Freight</td><td>₹<%=result.convDetails.freight.toFixed(2)%></td></tr>
-        <tr class="row-total"><td><strong>Total Conversion/Kg</strong></td><td><strong>₹<%=result.convDetails.total.toFixed(2)%></strong></td></tr>
         <tr class="table-section-head"><td colspan="2">Final Pricing</td></tr>
         <tr><td>SSP Rate / Kg</td><td>₹<%=result.sspRatePerKg.toFixed(2)%></td></tr>
         <tr><td>SSP Rate / Bag</td><td>₹<%=result.sspRatePerBag.toFixed(2)%></td></tr>
         <tr><td><%=quote.pricing_type%> (<%=quote.discount_pct%>%)</td><td>—</td></tr>
+        <tr>
+          <td>Check: SSP/Kg − RM/Kg (incl. liner)</td>
+          <td>₹<%=(result.sspRatePerKg - result.rmRatePerKg).toFixed(2)%> (should equal Conv/Kg: <%=result.convDetails.total.toFixed(2)%>)</td>
+        </tr>
+        <tr class="row-final"><td><strong>Average Contribution / Kg (₹)</strong></td><td><strong>₹<%=(((parseFloat(quote.final_price_per_bag) - result.rmPricePerBag) * 1000) / result.totalWtWithLiner).toFixed(2)%></strong></td></tr>
         <tr class="row-final"><td><strong>Final / Kg</strong></td><td><strong>₹<%=parseFloat(quote.final_price_per_kg).toFixed(2)%></strong></td></tr>
         <tr class="row-final"><td><strong>Final / Bag</strong></td><td><strong>₹<%=parseFloat(quote.final_price_per_bag).toFixed(2)%></strong></td></tr>
       </table>

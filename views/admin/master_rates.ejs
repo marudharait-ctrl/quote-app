@@ -1,0 +1,373 @@
+<% var title='Master Rate Sheet'; var activePage='master';
+   var isAdmin = user && user.userRole === 'admin';
+%>
+<%- include('../layout') %>
+
+<div class="page-header no-print">
+  <div>
+    <h1>📊 Master Rate Sheet</h1>
+    <p class="subtitle">
+      Effective: <%= new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) %>
+      <% if (isAdmin) { %><span class="badge badge-blue" style="margin-left:.5rem;vertical-align:middle">Admin — Editable</span><% } %>
+    </p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <% if (isAdmin) { %>
+    <button onclick="saveAll()" class="btn btn-primary no-print" id="saveBtn" style="display:none">💾 Save Changes</button>
+    <button onclick="cancelEdit()" class="btn btn-secondary no-print" id="cancelBtn" style="display:none">✕ Cancel</button>
+    <button onclick="enableEdit()" class="btn btn-secondary no-print" id="editBtn">✏️ Edit Rates</button>
+    <% } %>
+    <button onclick="window.print()" class="btn btn-ghost no-print">🖨️ Print / PDF</button>
+    <a href="/quotes" class="btn btn-ghost no-print">← Back</a>
+  </div>
+</div>
+
+<% if (typeof saved !== 'undefined' && saved) { %>
+<div class="alert alert-success no-print">✅ Rates saved successfully! All new quotes will use the updated values.</div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+<div class="alert alert-danger no-print">⚠️ <%= error %></div>
+<% } %>
+
+<!-- Print header -->
+<div class="print-header">
+  <h2>Master Rate Sheet</h2>
+  <p>Effective Date: <%= new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) %> &nbsp;|&nbsp; Generated: <%= new Date().toLocaleString('en-IN') %></p>
+</div>
+
+<form id="ratesForm" method="POST" action="/admin/pricing/master">
+
+<div class="master-grid">
+
+  <!-- RM Rates -->
+  <% if (groups['RM Rates']) { %>
+  <div class="card master-card">
+    <h2 class="master-section-title">🧱 Raw Material Rates</h2>
+    <table class="master-table">
+      <thead>
+        <tr><th>Material</th><th>Rate (₹/Kg)</th><th>Wastage (%)</th><th>Effective Cost</th></tr>
+      </thead>
+      <tbody>
+        <%
+          var rm = {};
+          groups['RM Rates'].forEach(function(r){ rm[r.key] = r.value; });
+          var materials = [
+            { name:'PP Fabric (H030SG)', rate:'rm_pp_rate',          wastage:'rm_pp_wastage' },
+            { name:'Filler',             rate:'rm_filler_rate',       wastage:'rm_filler_wastage' },
+            { name:'BOPP',               rate:'rm_bopp_rate',         wastage:'rm_bopp_wastage' },
+            { name:'Metalize',           rate:'rm_metalize_rate',     wastage:'rm_metalize_wastage' },
+            { name:'Ink & Solvent',      rate:'rm_ink_rate',          wastage:'rm_ink_wastage' },
+            { name:'Lamination',         rate:'rm_lam_rate',          wastage:'rm_lam_wastage' },
+            { name:'Liner',              rate:'rm_liner_rate',        wastage:'rm_liner_wastage' },
+            { name:'Handle',             rate:'rm_handle_rate',       wastage:'rm_handle_wastage' },
+            { name:'Fabric Conversion',  rate:'rm_fabric_conv_rate',  wastage:null },
+          ];
+        %>
+        <% materials.forEach(function(m) { %>
+        <% var rate = rm[m.rate]||0; var wast = m.wastage ? (rm[m.wastage]||0) : 0; %>
+        <tr>
+          <td><strong><%= m.name %></strong></td>
+          <td class="num">
+            <span class="view-val">₹<%= rate.toFixed(2) %></span>
+            <% if (isAdmin) { %>
+            <input type="number" name="<%= m.rate %>" value="<%= rate %>" step="0.01" min="0"
+              class="edit-input" data-key="<%= m.rate %>" style="display:none">
+            <% } else { %>
+            <input type="hidden" name="<%= m.rate %>" value="<%= rate %>">
+            <% } %>
+          </td>
+          <td class="num">
+            <% if (m.wastage) { %>
+            <span class="view-val"><%= wast.toFixed(1) %>%</span>
+            <% if (isAdmin) { %>
+            <input type="number" name="<%= m.wastage %>" value="<%= wast %>" step="0.1" min="0" max="100"
+              class="edit-input" data-key="<%= m.wastage %>" style="display:none">
+            <% } else { %>
+            <input type="hidden" name="<%= m.wastage %>" value="<%= wast %>">
+            <% } %>
+            <% } else { %><span class="view-val text-muted">—</span><% } %>
+          </td>
+          <td class="num effective" id="eff-<%= m.rate %>">
+            ₹<%= (rate*(1+wast/100)).toFixed(2) %>/Kg
+          </td>
+        </tr>
+        <% }); %>
+        <tr class="info-row">
+          <td>Handle Weight / Bag</td>
+          <td class="num" colspan="2">
+            <span class="view-val"><%= (rm['rm_handle_weight']||7).toFixed(1) %> gm</span>
+            <% if (isAdmin) { %>
+            <input type="number" name="rm_handle_weight" value="<%= rm['rm_handle_weight']||7 %>"
+              step="0.5" min="0" class="edit-input" style="display:none">
+            <% } else { %>
+            <input type="hidden" name="rm_handle_weight" value="<%= rm['rm_handle_weight']||7 %>">
+            <% } %>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <!-- Conversion Charges -->
+  <% if (groups['Conversion Charges']) { %>
+  <div class="card master-card">
+    <h2 class="master-section-title">🔧 Conversion Charges (₹/Kg)</h2>
+    <table class="master-table">
+      <thead>
+        <tr><th>Description</th><th>Condition</th><th>₹/Kg</th></tr>
+      </thead>
+      <tbody>
+        <%
+          var cv = {};
+          groups['Conversion Charges'].forEach(function(r){ cv[r.key] = r.value; });
+          var convRows = [
+            { key:'conv_width_lt15',      label:'Width Surcharge',      cond:'Width < 15"' },
+            { key:'conv_width_eq15',      label:'Width Surcharge',      cond:'Width = 15"' },
+            { key:'conv_width_lt18',      label:'Width Surcharge',      cond:'Width 15–18"' },
+            { key:'conv_plain_no_lam',    label:'Bag Style (no lam)',   cond:'Plain Bag' },
+            { key:'conv_flexo_no_lam',    label:'Bag Style (no lam)',   cond:'Flexo Bag' },
+            { key:'conv_bopp_double',     label:'BOPP Type',            cond:'Double' },
+            { key:'conv_bopp_single',     label:'BOPP Type',            cond:'Single' },
+            { key:'conv_back_flexo',      label:'Back Flexo Printing',  cond:'When Yes' },
+            { key:'conv_mat_finish',      label:'MAT Finish',           cond:'When MAT selected' },
+            { key:'conv_metalize_base',   label:'Metalize Base',        cond:'When metalize = Yes' },
+            { key:'conv_metalize_window', label:'Metalize Window Wash', cond:'When perforation = Yes' },
+            { key:'conv_valve',           label:'Valve',                cond:'When Yes' },
+            { key:'conv_hamming',         label:'Hamming',              cond:'When Yes' },
+            { key:'conv_tuber',           label:'Tuber',                cond:'When Yes' },
+            { key:'conv_handle_conv',     label:'Handle Conversion',    cond:'When handle = Yes' },
+            { key:'conv_liner_overhead',  label:'Liner Overhead',       cond:'Fixed add-on (₹)' },
+          ];
+        %>
+        <% convRows.forEach(function(r) { %>
+        <% var val = cv[r.key]||0; %>
+        <tr>
+          <td><%= r.label %></td>
+          <td class="cond"><%= r.cond %></td>
+          <td class="num">
+            <span class="view-val <%= val>0?'positive':'' %>">₹<%= val.toFixed(2) %></span>
+            <% if (isAdmin) { %>
+            <input type="number" name="<%= r.key %>" value="<%= val %>" step="0.01" min="0"
+              class="edit-input" style="display:none">
+            <% } else { %>
+            <input type="hidden" name="<%= r.key %>" value="<%= val %>">
+            <% } %>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <!-- Freight -->
+  <% if (groups['Freight']) { %>
+  <div class="card master-card">
+    <h2 class="master-section-title">🚚 Freight Charges (₹/Kg)</h2>
+    <table class="master-table">
+      <thead>
+        <tr><th>Destination</th><th>Rate (₹/Kg)</th></tr>
+      </thead>
+      <tbody>
+        <% groups['Freight'].forEach(function(r) { %>
+        <tr>
+          <td><%= r.label.replace(' (₹/Kg)','') %></td>
+          <td class="num">
+            <span class="view-val <%= r.value>0?'positive':'' %>">
+              <%= r.value>0 ? '₹'+r.value.toFixed(2) : 'NIL' %>
+            </span>
+            <% if (isAdmin) { %>
+            <input type="number" name="<%= r.key %>" value="<%= r.value %>" step="0.01" min="0"
+              class="edit-input" style="display:none">
+            <% } else { %>
+            <input type="hidden" name="<%= r.key %>" value="<%= r.value %>">
+            <% } %>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <!-- Weight Formulas -->
+  <div class="card master-card">
+    <h2 class="master-section-title">📐 Weight Calculation Formulas</h2>
+    <table class="master-table">
+      <thead><tr><th>Component</th><th>Formula</th><th>Unit</th></tr></thead>
+      <tbody>
+        <tr><td>Fabric Weight</td>     <td class="formula">W × L × Grammage ÷ 39.37</td>             <td>gm</td></tr>
+        <tr><td>Lamination Weight</td> <td class="formula">W × (GSM × sides) ÷ 1549.9969 × L</td>   <td>gm</td></tr>
+        <tr><td>BOPP Weight</td>       <td class="formula">W × (Micron × sides) ÷ 1549.9969 × L</td> <td>gm</td></tr>
+        <tr><td>Metalize Weight</td>   <td class="formula">W × L × (Micron × sides) ÷ 1549.9969</td> <td>gm</td></tr>
+        <tr><td>Ink Weight</td>        <td class="formula">W × L × 2 × Ink GSM ÷ 1549.9969</td>     <td>gm</td></tr>
+        <tr><td>Liner Weight</td>      <td class="formula">Liner W × Liner L × Thickness ÷ 3300</td> <td>gm</td></tr>
+        <tr><td>Handle Weight</td>     <td class="formula">Fixed per bag (configurable above)</td>    <td>gm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SSP Flow -->
+  <div class="card master-card">
+    <h2 class="master-section-title">💰 SSP Calculation Flow</h2>
+    <div class="calc-flow">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-body">
+        <div class="flow-title">RM Cost per Bag</div>
+        <div class="flow-desc">Weight (gm) × Rate (₹/Kg) ÷ 1000 × (1 + Wastage%)</div>
+      </div></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-body">
+        <div class="flow-title">RM Rate per Kg (excl. liner)</div>
+        <div class="flow-desc">1000 ÷ Total Weight (excl. liner) × Total RM Cost (excl. liner)</div>
+      </div></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-body">
+        <div class="flow-title">Conversion Charges</div>
+        <div class="flow-desc">Width + BOPP Type + Flexo + MAT + Metalize + Handle + Liner Adj. + Freight</div>
+      </div></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-body">
+        <div class="flow-title">SSP Rate per Kg</div>
+        <div class="flow-desc">RM Rate/Kg + Total Conversion Charges</div>
+      </div></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-body">
+        <div class="flow-title">SSP Rate per Bag</div>
+        <div class="flow-desc">SSP Rate/Kg × Total Bag Weight (incl. liner) ÷ 1000</div>
+      </div></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step flow-final"><div class="flow-num">6</div><div class="flow-body">
+        <div class="flow-title">Final Price</div>
+        <div class="flow-desc">SSP ± Premium / Discount %</div>
+      </div></div>
+    </div>
+  </div>
+
+</div><!-- /master-grid -->
+</form>
+
+<% if (isAdmin) { %>
+<script>
+var editing = false;
+
+function enableEdit() {
+  editing = true;
+  document.querySelectorAll('.view-val').forEach(function(el){ el.style.display='none'; });
+  document.querySelectorAll('.edit-input').forEach(function(el){
+    el.style.display='inline-block';
+    el.dataset.original = el.value;
+  });
+  document.getElementById('editBtn').style.display   = 'none';
+  document.getElementById('saveBtn').style.display   = 'inline-flex';
+  document.getElementById('cancelBtn').style.display = 'inline-flex';
+  // Live recalc effective cost
+  document.querySelectorAll('.edit-input').forEach(function(el){
+    el.addEventListener('input', recalcEffective);
+  });
+}
+
+function cancelEdit() {
+  document.querySelectorAll('.edit-input').forEach(function(el){
+    el.value = el.dataset.original;
+    el.style.display = 'none';
+    el.classList.remove('changed');
+  });
+  document.querySelectorAll('.view-val').forEach(function(el){ el.style.display=''; });
+  document.getElementById('editBtn').style.display   = 'inline-flex';
+  document.getElementById('saveBtn').style.display   = 'none';
+  document.getElementById('cancelBtn').style.display = 'none';
+  editing = false;
+}
+
+function saveAll() {
+  if (!confirm('Save all rate changes? This will affect all future quotes.')) return;
+  document.getElementById('ratesForm').submit();
+}
+
+function recalcEffective() {
+  var materials = [
+    { rate:'rm_pp_rate',         wastage:'rm_pp_wastage' },
+    { rate:'rm_filler_rate',     wastage:'rm_filler_wastage' },
+    { rate:'rm_bopp_rate',       wastage:'rm_bopp_wastage' },
+    { rate:'rm_metalize_rate',   wastage:'rm_metalize_wastage' },
+    { rate:'rm_ink_rate',        wastage:'rm_ink_wastage' },
+    { rate:'rm_lam_rate',        wastage:'rm_lam_wastage' },
+    { rate:'rm_liner_rate',      wastage:'rm_liner_wastage' },
+    { rate:'rm_handle_rate',     wastage:'rm_handle_wastage' },
+    { rate:'rm_fabric_conv_rate',wastage:null },
+  ];
+  materials.forEach(function(m) {
+    var rateEl   = document.querySelector('[name="'+m.rate+'"]');
+    var wastEl   = m.wastage ? document.querySelector('[name="'+m.wastage+'"]') : null;
+    var effEl    = document.getElementById('eff-'+m.rate);
+    if (rateEl && effEl) {
+      var rate = parseFloat(rateEl.value)||0;
+      var wast = wastEl ? (parseFloat(wastEl.value)||0) : 0;
+      effEl.textContent = '₹'+(rate*(1+wast/100)).toFixed(2)+'/Kg';
+    }
+  });
+}
+
+// Mark changed fields yellow
+document.addEventListener('input', function(e) {
+  if (e.target.classList.contains('edit-input')) {
+    var changed = parseFloat(e.target.value) !== parseFloat(e.target.dataset.original);
+    e.target.classList.toggle('changed', changed);
+  }
+});
+</script>
+<% } %>
+
+<style>
+.master-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+@media(max-width:900px){ .master-grid{ grid-template-columns:1fr; } }
+.master-card { padding:1.25rem; }
+.master-section-title { font-size:1rem; font-weight:700; color:var(--gray-800); margin-bottom:.9rem; padding-bottom:.5rem; border-bottom:2px solid var(--primary-light); }
+.master-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+.master-table thead th { background:var(--gray-50); padding:.5rem .75rem; text-align:left; font-size:.75rem; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.04em; border-bottom:2px solid var(--gray-200); }
+.master-table tbody tr { border-bottom:1px solid var(--gray-100); }
+.master-table tbody tr:hover { background:var(--gray-50); }
+.master-table tbody td { padding:.45rem .75rem; color:var(--gray-700); vertical-align:middle; }
+.master-table .num { text-align:right; font-family:'Courier New',monospace; font-weight:600; }
+.master-table .effective { color:var(--primary); font-weight:700; }
+.master-table .positive { color:var(--success); }
+.master-table .formula { font-family:'Courier New',monospace; font-size:.8rem; color:var(--gray-600); }
+.master-table .cond { color:var(--gray-500); font-size:.82rem; font-style:italic; }
+.info-row td { background:var(--primary-light); color:var(--primary); font-weight:600; }
+
+/* Edit inputs */
+.edit-input {
+  width:90px; text-align:right; padding:.25rem .4rem;
+  border:1.5px solid var(--primary); border-radius:4px;
+  font-family:'Courier New',monospace; font-size:.85rem;
+  background:#fff;
+}
+.edit-input.changed { border-color:#f59e0b; background:#fffbeb; }
+.edit-input:focus { outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+
+/* Calc flow */
+.calc-flow { display:flex; flex-direction:column; gap:.5rem; }
+.flow-step { display:flex; gap:.75rem; align-items:flex-start; background:var(--gray-50); border-radius:8px; padding:.75rem; border-left:3px solid var(--primary); }
+.flow-step.flow-final { border-left-color:var(--success); background:var(--success-light); }
+.flow-num { background:var(--primary); color:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem; flex-shrink:0; margin-top:.1rem; }
+.flow-final .flow-num { background:var(--success); }
+.flow-title { font-weight:700; font-size:.88rem; color:var(--gray-800); }
+.flow-desc { font-size:.8rem; color:var(--gray-500); margin-top:.15rem; font-family:'Courier New',monospace; }
+.flow-arrow { text-align:center; color:var(--gray-400); font-size:1.2rem; line-height:1; }
+
+/* Print */
+.print-header { display:none; }
+@media print {
+  .no-print,.navbar { display:none !important; }
+  .main-content { padding:.5rem; }
+  .print-header { display:block; text-align:center; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:2px solid #000; }
+  .master-grid { grid-template-columns:1fr 1fr; gap:.75rem; }
+  .card { box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
+  .edit-input { display:none !important; }
+  .view-val { display:inline !important; }
+}
+</style>
+
+<%- include('../layout_footer') %>

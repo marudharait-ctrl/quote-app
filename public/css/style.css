@@ -76,6 +76,7 @@ a:hover{text-decoration:underline}
 .input-with-select input{border-radius:7px 0 0 7px;flex:1;border-right:none}
 .input-with-select select{border-radius:0 7px 7px 0;min-width:90px;background:var(--gray-light)}
 .form-grid-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:1rem}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;align-items:end}
 .form-section{margin-bottom:.75rem}
 .section-title{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.875rem;padding-bottom:.5rem;border-bottom:1px solid var(--gray-border)}
 
@@ -201,4 +202,77 @@ hr{border:none;border-top:1px solid var(--gray-border);margin:.75rem 0}
   .nav-links a{padding:5px 8px;font-size:.82rem}
   .main-content{padding:1rem}
   .form-grid-3{grid-template-columns:1fr}
+}
+
+/* ── Logo & Branding ─────────────────────────────────────────────────────── */
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  text-decoration: none;
+}
+.brand-link:hover { text-decoration: none; }
+
+.nav-logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  /* white background so logo is visible on white navbar */
+  background: #fff;
+  padding: 2px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.brand-name {
+  font-size: .95rem;
+  font-weight: 800;
+  color: #8b1a1a;   /* matches the dark red in the logo */
+  letter-spacing: -.01em;
+}
+.brand-sub {
+  font-size: .72rem;
+  color: var(--gray-400);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* Auth page top bar (login / register) */
+.auth-topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--gray-200);
+  padding: .75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.auth-topbar-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Logo inside auth card */
+.auth-logo-img {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: .5rem;
+}
+
+/* Print — always show logo */
+@media print {
+  .nav-logo { display: block !important; }
+}
+
+/* Responsive: hide brand text on small screens, keep logo */
+@media (max-width: 768px) {
+  .brand-text { display: none; }
+  .nav-logo   { height: 36px; }
+  .nav-username { display: none; }
 }

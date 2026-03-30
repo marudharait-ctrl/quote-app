@@ -95,9 +95,11 @@
         </div>
         <div class="form-group">
           <label>Bag Style</label>
-          <select name="bag_style">
-            <option <%= sel('bag_style','Flexo Bag','Flexo Bag') %>>Flexo Bag</option>
-            <option <%= sel('bag_style','Plain bag','Flexo Bag') %>>Plain Bag</option>
+          <select name="bag_style" required>
+            <option value="" <%= sel('bag_style','', '') %> disabled>-- Select Bag Style --</option>
+            <option <%= sel('bag_style','Flexo Bag','') %>>Flexo Bag</option>
+            <option <%= sel('bag_style','Plain bag','') %>>Plain Bag</option>
+            <option <%= sel('bag_style','BOPP Woven Sack','') %>>BOPP Woven Sack</option>
           </select>
         </div>
       </div>
@@ -110,8 +112,8 @@
         <div class="form-group">
           <label>Include Lamination</label>
           <select name="lamination_included">
-            <option <%= sel('lamination_included','Yes','Yes') %>>Yes</option>
-            <option <%= sel('lamination_included','No','Yes') %>>No</option>
+            <option <%= sel('lamination_included','Yes','No') %>>Yes</option>
+            <option <%= sel('lamination_included','No','No') %>>No</option>
           </select>
         </div>
         <div class="form-group">
@@ -135,8 +137,8 @@
         <div class="form-group">
           <label>Include BOPP</label>
           <select name="bopp_included">
-            <option <%= sel('bopp_included','Yes','Yes') %>>Yes</option>
-            <option <%= sel('bopp_included','No','Yes') %>>No</option>
+            <option <%= sel('bopp_included','Yes','No') %>>Yes</option>
+            <option <%= sel('bopp_included','No','No') %>>No</option>
           </select>
         </div>
         <div class="form-group">
@@ -167,8 +169,8 @@
         <div class="form-group">
           <label>Back Side Flexo Printing</label>
           <select name="back_flexo">
-            <option <%= sel('back_flexo','Yes','Yes') %>>Yes</option>
-            <option <%= sel('back_flexo','No','Yes') %>>No</option>
+            <option <%= sel('back_flexo','Yes','No') %>>Yes</option>
+            <option <%= sel('back_flexo','No','No') %>>No</option>
           </select>
         </div>
         <div class="form-group">
@@ -220,8 +222,8 @@
         <div class="form-group">
           <label>Handle</label>
           <select name="handle_included">
-            <option <%= sel('handle_included','Yes','Yes') %>>Yes</option>
-            <option <%= sel('handle_included','No','Yes') %>>No</option>
+            <option <%= sel('handle_included','Yes','No') %>>Yes</option>
+            <option <%= sel('handle_included','No','No') %>>No</option>
           </select>
         </div>
         <div class="form-group">
@@ -255,8 +257,8 @@
         <div class="form-group">
           <label>Include Liner</label>
           <select name="liner_included">
-            <option <%= sel('liner_included','Yes','Yes') %>>Yes</option>
-            <option <%= sel('liner_included','No','Yes') %>>No</option>
+            <option <%= sel('liner_included','Yes','No') %>>Yes</option>
+            <option <%= sel('liner_included','No','No') %>>No</option>
           </select>
         </div>
         <div class="form-group">
@@ -350,10 +352,11 @@ function buildPriceHTML(r) {
     '<div class="price-item"><span>Lamination</span><span>₹' + r.lamCost.toFixed(2) + '/bag (' + r.lamWt.toFixed(1) + ' gm)</span></div>' +
     '<div class="price-item"><span>BOPP+Ink</span><span>₹' + r.boppCost.toFixed(2) + '/bag (' + r.boppWt.toFixed(1) + ' gm)</span></div>' +
     '<div class="price-item"><span>Metalize</span><span>₹' + r.metCost.toFixed(2) + '/bag (' + r.metWt.toFixed(1) + ' gm)</span></div>' +
-    '<div class="price-item"><span>Handle</span><span>₹' + r.handleCost.toFixed(2) + '/bag</span></div>' +
+    '<div class="price-item"><span>Handle</span><span>₹' + r.handleCost.toFixed(2) + '/bag' + (r.handleWt ? ' (' + r.handleWt.toFixed(1) + ' gm)' : '') + '</span></div>' +
     '<div class="price-item"><span>Liner</span><span>₹' + r.linerCost.toFixed(2) + '/bag (' + r.linerWt.toFixed(1) + ' gm)</span></div>' +
     '<div class="price-item total"><span>RM Total / Bag</span><span>₹' + r.rmPricePerBag.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>Total Weight</span><span>' + r.totalWtWithLiner.toFixed(1) + ' gm</span></div>' +
+    '<div class="price-item total"><span><strong>RM Cost per Kg</strong></span><span><strong>₹' + (r.totalWtWithLiner > 0 ? (r.rmPricePerBag * 1000 / r.totalWtWithLiner).toFixed(2) : '0.00') + '</strong></span></div>' +
     '<hr><h4>Conversion Costs (₹/Kg)</h4>' +
     '<div class="price-item"><span>Width Surcharge</span><span>₹' + r.convDetails.widthSurcharge.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>Bag Style</span><span>₹' + r.convDetails.bagStyle.toFixed(2) + '</span></div>' +
@@ -364,16 +367,31 @@ function buildPriceHTML(r) {
     '<div class="price-item"><span>Handle Conv</span><span>₹' + r.convDetails.handleConv.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>Liner Conv</span><span>₹' + r.convDetails.linerConv.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>Freight</span><span>₹' + r.convDetails.freight.toFixed(2) + '</span></div>' +
-    '<div class="price-item total"><span>Total Conversion</span><span>₹' + r.convDetails.total.toFixed(2) + '/Kg</span></div>' +
     '<hr>' +
     '<div class="price-item"><span>SSP Rate / Kg</span><span>₹' + r.sspRatePerKg.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>SSP Rate / Bag</span><span>₹' + r.sspRatePerBag.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>' + r.pricingType + ' %</span><span>' + r.discount + '%</span></div>' +
+    '<div class="price-item highlight"><span>Average Contribution / Kg (₹)</span><strong>₹' + (((r.finalRatePerBag - r.rmPricePerBag) * 1000) / r.totalWtWithLiner).toFixed(2) + '</strong></div>' +
     '</div>';
 }
 
 if (existingResult) {
   document.getElementById('priceResults').innerHTML = buildPriceHTML(existingResult);
+}
+
+// Enforce: if BOPP Side is "Double", back side flexo printing must be "No"
+var boppSideSelect = document.querySelector('select[name="bopp_side"]');
+var backFlexoSelect = document.querySelector('select[name="back_flexo"]');
+
+if (boppSideSelect && backFlexoSelect) {
+  function enforceBackFlexoForBoppSide() {
+    if (boppSideSelect.value === 'Double') {
+      backFlexoSelect.value = 'No';
+    }
+  }
+  // Apply on load and whenever BOPP side changes
+  enforceBackFlexoForBoppSide();
+  boppSideSelect.addEventListener('change', enforceBackFlexoForBoppSide);
 }
 
 document.getElementById('calcBtn').addEventListener('click', async function() {

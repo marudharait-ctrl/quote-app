@@ -1,0 +1,75 @@
+<% var title='Pricing Configuration'; var activePage='pricing'; %>
+<%- include('../layout') %>
+
+<div class="page-header">
+  <div>
+    <h1>⚙️ Pricing Configuration</h1>
+    <p class="subtitle">Edit raw material rates, conversion charges and freight — changes apply to all new quotes immediately</p>
+  </div>
+  <a href="/admin" class="btn btn-secondary">← Dashboard</a>
+</div>
+
+<% if (saved) { %>
+<div class="alert alert-success">✅ Pricing configuration saved successfully!</div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+<div class="alert alert-danger">⚠️ <%= error %></div>
+<% } %>
+
+<form method="POST" action="/admin/pricing">
+  <% Object.keys(groups).forEach(function(groupName) { %>
+  <div class="card form-section">
+    <h2 class="section-title">
+      <%= groupName === 'RM Rates' ? '🧱' : groupName === 'Conversion Charges' ? '🔧' : '🚚' %>
+      <%= groupName %>
+    </h2>
+    <div class="config-grid">
+      <% groups[groupName].forEach(function(row) { %>
+      <div class="form-group">
+        <label><%= row.label %></label>
+        <div class="config-input-wrap">
+          <input type="number" name="<%= row.key %>" value="<%= row.value %>"
+            step="0.01" min="0"
+            class="config-input"
+            data-original="<%= row.value %>"
+            oninput="markChanged(this)">
+          <span class="config-unit"><%= row.label.includes('₹') ? '₹' : row.label.includes('%') ? '%' : row.label.includes('gm') ? 'gm' : '' %></span>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+  </div>
+  <% }); %>
+
+  <div class="form-actions" style="position:sticky;bottom:0;background:#f9fafb;padding:1rem;border-top:1px solid #e5e7eb;margin:0 -1.5rem -2rem;z-index:10;">
+    <span id="changeMsg" class="text-muted" style="flex:1"></span>
+    <a href="/admin/pricing" class="btn btn-secondary">↩ Reset Changes</a>
+    <button type="submit" class="btn btn-primary btn-lg">💾 Save All Changes</button>
+  </div>
+</form>
+
+<style>
+.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+.config-input-wrap { position: relative; display: flex; align-items: center; }
+.config-input { padding-right: 2rem !important; }
+.config-unit { position: absolute; right: .6rem; color: var(--gray-400); font-size: .8rem; pointer-events: none; }
+.config-input.changed { border-color: #f59e0b; background: #fffbeb; }
+</style>
+
+<script>
+var changeCount = 0;
+function markChanged(input) {
+  var orig = parseFloat(input.dataset.original);
+  var cur  = parseFloat(input.value);
+  var wasChanged = input.classList.contains('changed');
+  if (cur !== orig) {
+    if (!wasChanged) { input.classList.add('changed'); changeCount++; }
+  } else {
+    if (wasChanged)  { input.classList.remove('changed'); changeCount--; }
+  }
+  document.getElementById('changeMsg').textContent =
+    changeCount > 0 ? changeCount + ' unsaved change' + (changeCount > 1 ? 's' : '') : '';
+}
+</script>
+
+<%- include('../layout_footer') %>

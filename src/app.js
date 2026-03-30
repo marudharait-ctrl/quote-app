@@ -72,6 +72,8 @@ async function start() {
   app.use('/',       require('./routes/auth'));
   app.use('/quotes', require('./routes/quotes'));
   app.use('/admin',  require('./routes/admin'));
+  app.use('/admin/pricing', require('./routes/pricing_config'));
+  app.use('/api/whatsapp', require('./routes/whatsapp'));  // WhatsApp integration API
 
   app.get('/', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
