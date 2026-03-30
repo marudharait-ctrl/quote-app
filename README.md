@@ -24,21 +24,112 @@ npm start
 - Admin dashboard with user management
 - Print-friendly quote view
 
-## Raw Material Rates (from Excel)
+## Raw Material & Conversion Configuration
 
-Update these in `src/utils/pricing.js` → `RM_RATES`:
+All rates and conversion charges now come from the **`pricing_config`** table in the SQLite DB
+(configurable via the admin UI), instead of hard-coding constants in `pricing.js`.
 
-| Material       | Rate/Kg | Wastage |
-|----------------|---------|---------|
-| PP H030SG      | Rs.140  | 7%      |
-| Filler         | Rs.40   | 7%      |
-| BOPP           | Rs.225  | 14%     |
-| Metalize       | Rs.245  | 7%      |
-| Ink & Solvent  | Rs.1700 | 14%     |
-| Lamination     | Rs.165  | 7.5%    |
-| Liner F19010   | Rs.160  | 7.5%    |
-| Handle         | Rs.240  | 3%      |
-| Fabric Conv    | Rs.25   | 0%      |
+Key RM rates (defaults mirror your Excel sheet):
+
+| Key                | Description                         | Default |
+|--------------------|-------------------------------------|---------|
+| rm_pp_rate         | PP Fabric Rate (₹/Kg)              | 140     |
+| rm_pp_wastage      | PP Fabric Wastage (%)              | 7       |
+| rm_filler_rate     | Filler Rate (₹/Kg)                 | 40      |
+| rm_filler_wastage  | Filler Wastage (%)                 | 7       |
+| rm_bopp_rate       | BOPP Rate (₹/Kg)                   | 225     |
+| rm_bopp_wastage    | BOPP Wastage (%)                   | 14      |
+| rm_metalize_rate   | Metalize Rate (₹/Kg)               | 245     |
+| rm_metalize_wastage| Metalize Wastage (%)               | 7       |
+| rm_ink_rate        | Ink & Solvent Rate (₹/Kg)          | 1700    |
+| rm_ink_wastage     | Ink & Solvent Wastage (%)          | 14      |
+| rm_lam_rate        | Lamination Rate (₹/Kg)             | 165     |
+| rm_lam_wastage     | Lamination Wastage (%)             | 7.5     |
+| rm_liner_rate      | Liner Rate (₹/Kg)                  | 160     |
+| rm_liner_wastage   | Liner Wastage (%)                  | 7.5     |
+| rm_handle_rate     | Handle Rate (₹/Kg)                 | 240     |
+| rm_handle_wastage  | Handle Wastage (%)                 | 3       |
+| rm_handle_weight   | Handle Weight (gm/bag)             | 7       |
+| rm_fabric_conv_rate| Fabric Conversion Rate (₹/Kg)      | 25      |
+
+Key conversion charges:
+
+| Key                  | Description                                   | Default |
+|----------------------|-----------------------------------------------|---------|
+| conv_width_lt15      | Width < 15" surcharge (₹/Kg)                  | 20      |
+| conv_width_eq15      | Width = 15" surcharge (₹/Kg)                  | 15      |
+| conv_width_lt18      | Width 15–18" surcharge (₹/Kg)                 | 6       |
+| conv_plain_no_lam    | Plain bag (no lamination) (₹/Kg)              | 40      |
+| conv_flexo_no_lam    | Flexo bag (no lamination) (₹/Kg)              | 50      |
+| conv_bopp_double     | BOPP Double-side surcharge (₹/Kg)             | 40      |
+| conv_bopp_single     | BOPP Single-side surcharge (₹/Kg)             | 35      |
+| conv_back_flexo      | Back side flexo printing (₹/Kg)               | 5       |
+| conv_mat_finish      | MAT finish surcharge (₹/Kg)                   | 2       |
+| conv_metalize_base   | Metalize base (₹/Kg)                          | 15      |
+| conv_metalize_window | Metalize window wash (₹/Kg)                   | 10      |
+| conv_valve           | Valve (₹/Kg)                                  | 3       |
+| conv_hamming         | Hamming (₹/Kg)                                | 1       |
+| conv_tuber           | Tuber (₹/Kg)                                  | 0.7     |
+| conv_handle_conv     | Handle conversion (₹/Kg)                      | 1       |
+| conv_liner_overhead  | Liner overhead (fixed, used in liner formula) | 20      |
+
+Freight presets:
+
+| Key                 | Description            | Default |
+|---------------------|------------------------|---------|
+| freight_for_east    | FOR-East (₹/Kg)        | 10      |
+| freight_for_west    | FOR-West (₹/Kg)        | 4       |
+| freight_for_north   | FOR-North (₹/Kg)       | 4       |
+| freight_for_south   | FOR-South (₹/Kg)       | 10      |
+| freight_local       | Local (₹/Kg)           | 1.5     |
+| freight_ex_factory  | Ex-Factory (₹/Kg)      | 0       |
+
+You can manage these values via the **Admin → Master Rates / Pricing Config** screens.
+
+## Pricing & Logic Highlights (2026)
+
+The current pricing engine (`src/utils/pricing.js`) mirrors your Excel logic with
+some important behaviours:
+
+- **RM cost per Kg (including liner)**
+  - RM/Kg is computed from **total RM per bag including liner** divided by
+    **total bag weight including liner**.
+  - This RM/Kg is what you see as *"RM Cost per Kg"* in the UI.
+
+- **Total Conversion / Kg and SSP / Kg**
+  - SSP/Kg is calculated as: `SSP/Kg = RM/Kg + Total Conversion/Kg`.
+  - Total Conversion/Kg is the sum of all conversion components (width, BOPP,
+    liner adjustment, freight, etc.) and is shown under *Conversion Costs*.
+
+- **Final Contribution / Kg & Average Contribution / Kg**
+  - Final Contribution/Kg = Final SSP/Kg − RM/Kg (including liner).
+  - Average Contribution/Kg (₹) is shown as:
+    `((Final Price / Bag − RM Total / Bag) × 1000) ÷ Total Weight (gm)`.
+
+- **BOPP side vs Ink GSM**
+  - BOPP film: `bopp_side` (Single/Double) controls film thickness
+    (Single → 1× micron, Double → 2× micron).
+  - Ink GSM is applied on BOPP area:
+    - Double side: factor 2
+    - Single side: factor 1
+  - If *BOPP with White Coating = Yes*, ink GSM effectively becomes
+    `(Ink GSM + 1)` to account for the white layer.
+
+- **Liner logic & adjustment factor**
+  - Liner weight and cost are calculated from liner width/length, thickness and
+    liner RM rate.
+  - Liner conversion uses a weighted-average method so that overall conversion
+    ₹/Kg reflects different rates on liner vs non-liner weight.
+  - In the UI, this shows as **"Liner Adjustment Factor"** under Conversion
+    Costs.
+
+- **Width surcharge vs Tuber**
+  - Width surcharge (conv_width_*) is applied based on finished width *unless*
+    **Tuber = Yes**.
+  - When **Tuber is selected = Yes**, width surcharge is forced to **0**.
+
+These behaviours are what you now see reflected in the form and pricing
+breakdown screens.
 
 ## Project Structure
 
