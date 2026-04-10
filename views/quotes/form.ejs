@@ -354,6 +354,8 @@ function buildPriceHTML(r) {
     '<div class="price-item"><span>Metalize</span><span>₹' + r.metCost.toFixed(2) + '/bag (' + r.metWt.toFixed(1) + ' gm)</span></div>' +
     '<div class="price-item"><span>Handle</span><span>₹' + r.handleCost.toFixed(2) + '/bag' + (r.handleWt ? ' (' + r.handleWt.toFixed(1) + ' gm)' : '') + '</span></div>' +
     '<div class="price-item"><span>Liner</span><span>₹' + r.linerCost.toFixed(2) + '/bag (' + r.linerWt.toFixed(1) + ' gm)</span></div>' +
+    '<div class="price-item"><span>Flexo ink adjustment</span><span>₹' + r.flexoInkAdjPerBag.toFixed(2) + '/bag (₹' + r.flexoInkAdjPerKg.toFixed(2) + '/Kg)</span></div>' +
+    '<div class="price-item"><span>Adhesive (solvent-less for metalize)</span><span>₹' + r.adhesiveAdjPerBag.toFixed(2) + '/bag (calc: Surface area of metalize × 1.5 gsm × ₹380/Kg)</span></div>' +
     '<div class="price-item total"><span>RM Total / Bag</span><span>₹' + r.rmPricePerBag.toFixed(2) + '</span></div>' +
     '<div class="price-item"><span>Total Weight</span><span>' + r.totalWtWithLiner.toFixed(1) + ' gm</span></div>' +
     '<div class="price-item total"><span><strong>RM Cost per Kg</strong></span><span><strong>₹' + (r.totalWtWithLiner > 0 ? (r.rmPricePerBag * 1000 / r.totalWtWithLiner).toFixed(2) : '0.00') + '</strong></span></div>' +

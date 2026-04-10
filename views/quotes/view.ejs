@@ -68,10 +68,16 @@
         <tr><td>Metalize</td><td>₹<%=result.metCost.toFixed(2)%>/bag (<%=result.metWt.toFixed(1)%> gm)</td></tr>
         <tr><td>Handle</td><td>₹<%=result.handleCost.toFixed(2)%>/bag</td></tr>
         <tr><td>Liner</td><td>₹<%=result.linerCost.toFixed(2)%>/bag (<%=result.linerWt.toFixed(1)%> gm)</td></tr>
+        <tr><td>Flexo ink adjustment</td><td>₹<%=result.flexoInkAdjPerBag.toFixed(2)%>/bag (₹<%=result.flexoInkAdjPerKg.toFixed(2)%>/Kg)</td></tr>
+        <tr><td>Adhesive (solvent-less for metalize)</td>
+            <td>₹<%=result.adhesiveAdjPerBag.toFixed(2)%>/bag (calc: Surface area of metalize × 1.5 gsm × ₹380/Kg)</td></tr>
         <tr class="row-total"><td><strong>RM Total / Bag</strong></td><td><strong>₹<%=result.rmPricePerBag.toFixed(2)%></strong></td></tr>
         <tr class="row-total"><td><strong>Total Weight</strong></td><td><strong><%=result.totalWtWithLiner.toFixed(2)%> gm</strong></td></tr>
         <tr class="row-total"><td><strong>RM Cost per Kg</strong></td><td><strong>₹<%= (result.totalWtWithLiner > 0 ? (result.rmPricePerBag * 1000 / result.totalWtWithLiner).toFixed(2) : '0.00') %></strong></td></tr>
-        <tr class="row-total"><td>RM Rate / Kg (engine)</td><td>₹<%=result.rmRatePerKg.toFixed(2)%></td></tr>
+        <% if (typeof result.rmRatePerKgBase !== 'undefined') { %>
+        <tr class="row-total"><td>RM Rate / Kg (base, before adj.)</td><td>₹<%=result.rmRatePerKgBase.toFixed(2)%></td></tr>
+        <tr class="row-total"><td>RM Rate / Kg (incl. flexo & adhesive)</td><td>₹<%=result.rmRatePerKg.toFixed(2)%></td></tr>
+        <% } %>
         <tr class="table-section-head"><td colspan="2">Conversion Costs (₹/Kg)</td></tr>
         <tr><td>Width Surcharge</td><td>₹<%=result.convDetails.widthSurcharge.toFixed(2)%></td></tr>
         <tr><td>Bag Style</td><td>₹<%=result.convDetails.bagStyle.toFixed(2)%></td></tr>

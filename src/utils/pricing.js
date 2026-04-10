@@ -46,7 +46,8 @@ function calculatePrice(inputs) {
   const L  = toInch(inputs.length_value, inputs.length_unit);
   const GR = toGrammage(inputs.fabric_gsm, inputs.fabric_type);
 
-  const fillerPct = inputs.filler_pct;
+  // Ensure filler % is always treated as a number ("0" or empty → 0)
+  const fillerPct = Number(inputs.filler_pct) || 0;
   const inkGsm    = inputs.ink_gsm;
 
   // Inclusion flags — FIX: normalise case properly
@@ -121,8 +122,35 @@ function calculatePrice(inputs) {
   const totalAmtWithoutLiner = totalAmtWithLiner - linerCost;
   const totalWtWithoutLiner  = totalWtWithLiner  - linerWt;
 
+  // ── RM adjustments (Flexo ink & Metalize adhesive) ─────────────────────
+  const bagStyle = (inputs.bag_style || 'Flexo Bag').toLowerCase();
+
+  // Flexo Bag → add flat ₹5/Kg as flexo ink cost (shown as separate line)
+  const flexoInkAdjPerKg  = bagStyle === 'flexo bag' ? 5 : 0;
+  const flexoInkAdjPerBag = flexoInkAdjPerKg * (totalWtWithLiner / 1000);
+
+  // Adhesive for metalize (solvent-less process)
+  // Trigger when "Include metalize" = Yes OR "Metalize window wash" = Yes
+  const metInclFlag        = metIncl; // from earlier inclusion flag
+  const metalizeWindowWash = (inputs.perforation || 'No').toLowerCase() === 'yes';
+  const hasMetalizeAdhesive = metInclFlag || metalizeWindowWash;
+
+  // Surface area of metalize per bag (m²)
+  // Reuse same geometry as metalize weight (W × L in inches → m²)
+  const METALIZE_AREA_PER_BAG_SQM = hasMetalizeAdhesive ? (W * L * 0.00064516) : 0; // 1 in² = 0.00064516 m²
+  const ADHESIVE_GSM             = 1.5;   // 1.5 g/m²
+  const ADHESIVE_RATE_PER_KG     = 380;   // ₹380 per Kg
+
+  const adhesiveWtKgPerBag  = METALIZE_AREA_PER_BAG_SQM * ADHESIVE_GSM / 1000; // g → Kg
+  const adhesiveAdjPerBag   = adhesiveWtKgPerBag * ADHESIVE_RATE_PER_KG;
+  const adhesiveAdjPerKg    = totalWtWithLiner > 0 ? (adhesiveAdjPerBag * 1000 / totalWtWithLiner) : 0;
+
+  // Final RM totals including adjustments
+  const rmPricePerBagFinal = totalAmtWithLiner + flexoInkAdjPerBag + adhesiveAdjPerBag;
+
   // Raw material rate per Kg INCLUDING liner (as requested)
-  const rmRatePerKg = totalWtWithLiner > 0 ? 1000 / totalWtWithLiner * totalAmtWithLiner : 0;
+  const rmRatePerKgBase  = totalWtWithLiner > 0 ? 1000 / totalWtWithLiner * totalAmtWithLiner   : 0;
+  const rmRatePerKgFinal = totalWtWithLiner > 0 ? 1000 / totalWtWithLiner * rmPricePerBagFinal : 0;
 
   // ── Conversion costs ───────────────────────────────────────────────────
   const conv = calcConversions(inputs, W, cfg,
@@ -130,7 +158,7 @@ function calculatePrice(inputs) {
     totalAmtWithoutLiner, totalWtWithoutLiner,
     handleWt, linerCost, linerWt);
 
-  const sspRatePerKg  = rmRatePerKg + conv.sum;
+  const sspRatePerKg  = rmRatePerKgFinal + conv.sum;
   const sspRatePerBag = sspRatePerKg * totalWtWithLiner / 1000;
 
   const pricingType = inputs.pricing_type || 'Premium';
@@ -157,8 +185,13 @@ function calculatePrice(inputs) {
     handleCost:         +handleCost.toFixed(4),
     linerCost:          +linerCost.toFixed(4),
     totalAmtWithLiner:  +totalAmtWithLiner.toFixed(4),
-    rmRatePerKg:        +rmRatePerKg.toFixed(4),
-    rmPricePerBag:      +totalAmtWithLiner.toFixed(4),
+    rmRatePerKgBase:    +rmRatePerKgBase.toFixed(4),
+    rmRatePerKg:        +rmRatePerKgFinal.toFixed(4),
+    rmPricePerBag:      +rmPricePerBagFinal.toFixed(4),
+    flexoInkAdjPerKg:   +flexoInkAdjPerKg.toFixed(4),
+    flexoInkAdjPerBag:  +flexoInkAdjPerBag.toFixed(4),
+    adhesiveAdjPerKg:   +adhesiveAdjPerKg.toFixed(4),
+    adhesiveAdjPerBag:  +adhesiveAdjPerBag.toFixed(4),
     convDetails:        conv.details,
     sspRatePerKg:       +sspRatePerKg.toFixed(4),
     sspRatePerBag:      +sspRatePerBag.toFixed(4),
@@ -192,7 +225,16 @@ function calcConversions(inputs, W, cfg,
   const freight    = inputs.freight || 'Ex Factory';
 
   const d14 = totalWtWithoutLiner > 0 ? 1000 / totalWtWithoutLiner * totalAmtWithoutLiner : 0;
-  const d15 = W < 15 ? cfg.conv_width_lt15 : W === 15 ? cfg.conv_width_eq15 : W < 18 ? cfg.conv_width_lt18 : 0;
+  // Width surcharge does NOT apply when tuber is selected
+  const d15 = tuber
+    ? 0
+    : (W < 15
+        ? cfg.conv_width_lt15
+        : W === 15
+          ? cfg.conv_width_eq15
+          : W < 18
+            ? cfg.conv_width_lt18
+            : 0);
   // Bag style conversion only applies when BOPP is NOT included (mutually exclusive)
   const d16 = boppIncl ? 0 : (bagStyle.toLowerCase().includes('plain') ? cfg.conv_plain_no_lam : cfg.conv_flexo_no_lam);
   const d17 = boppIncl ? (boppLevel === 'Double' ? cfg.conv_bopp_double : cfg.conv_bopp_single) : 0;

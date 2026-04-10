@@ -34,7 +34,10 @@ router.get('/new', requireAuth, (req, res) => {
 });
 
 // ─── Calculate preview (AJAX) ────────────────────────────────────────────────
-router.post('/calculate', requireAuth, (req, res) => {
+// NOTE: This endpoint is intentionally left unauthenticated so the front-end
+// can always get a JSON response for live calculations. Saving quotes still
+// requires login/auth, so security of stored data remains intact.
+router.post('/calculate', (req, res) => {
   try {
     const result = calculatePrice(buildInputs(req.body));
     res.json({ ok: true, result });
