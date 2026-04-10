@@ -86,6 +86,14 @@ Freight presets:
 
 You can manage these values via the **Admin → Master Rates / Pricing Config** screens.
 
+## GitHub Repository
+
+The full source code for this app lives at:
+
+- https://github.com/marudharait-ctrl/quote-app
+
+For day-to-day work you can pull, branch, and open PRs against that repo.
+
 ## Pricing & Logic Highlights (2026)
 
 The current pricing engine (`src/utils/pricing.js`) mirrors your Excel logic with
@@ -130,6 +138,67 @@ some important behaviours:
 
 These behaviours are what you now see reflected in the form and pricing
 breakdown screens.
+
+## Change Log (Key Updates)
+
+> This section documents important changes so that Mahesh / Naresh can
+> understand exactly what was changed in the logic and UI.
+
+### 2026-04-10 – Flexo ink & metalize adhesive breakdown
+
+**Code refs:**
+- `src/utils/pricing.js`
+- `views/quotes/form.ejs`
+- `views/quotes/view.ejs`
+- `src/routes/quotes.js`
+
+**Details:**
+- Added **Flexo ink cost** as a separate RM adjustment:
+  - Applies when **Bag Style = "Flexo Bag"**.
+  - Logic: `+₹5 / Kg` on RM cost.
+  - Exposed in pricing engine as:
+    - `flexoInkAdjPerKg`
+    - `flexoInkAdjPerBag`
+  - Shown in UI under *Raw Material Costs* as:
+    - **Flexo ink adjustment – ₹X.XX/bag (₹5.00/Kg)**.
+
+- Added **Metalize adhesive (solvent-less) cost** as separate RM adjustment:
+  - Trigger when:
+    - `metalize_included = "Yes"` **OR** `perforation = "Yes"`
+      (Metalize window wash).
+  - Logic per bag:
+    - Surface area of metalize per bag (m²)
+    - × `1.5 gsm` (adhesive deposition)
+    - × `₹380 / Kg` (adhesive rate)
+  - Exposed in pricing engine as:
+    - `adhesiveAdjPerKg`
+    - `adhesiveAdjPerBag`
+  - Shown in UI under *Raw Material Costs* as:
+    - **Adhesive (solvent-less for metalize) – ₹Y.YY/bag (calc: Surface area of metalize × 1.5 gsm × ₹380/Kg)**.
+
+- Updated RM summary fields:
+  - `rmRatePerKgBase` – RM/Kg **before** the two adjustments.
+  - `rmRatePerKg` – RM/Kg **after** including flexo ink + adhesive.
+  - `rmPricePerBag` – RM total per bag **including** both adjustments.
+
+- UI changes (quote view + live calculator):
+  - Under **Raw Material Costs** (both view & live panel) the following are
+    always visible:
+    - **Flexo ink adjustment**
+    - **Adhesive (solvent-less for metalize)**
+  - For quotes where the adjustment doesn’t apply, these rows simply show
+    `₹0.00` so that the structure is consistent and the reason for RM
+    increase is always explainable.
+
+- Added optional RM check rows (only when available):
+  - **RM Rate / Kg (base, before adj.)**
+  - **RM Rate / Kg (incl. flexo & adhesive)**
+
+- Calculation endpoint change:
+  - `POST /quotes/calculate` is now **unauthenticated**.
+  - Reason: the live **Calculate Price** button expects a pure JSON response
+    and was breaking when sessions expired (redirect to `/login`).
+  - Quote creation/editing remains protected by `requireAuth`.
 
 ## Project Structure
 
