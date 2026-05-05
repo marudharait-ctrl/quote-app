@@ -10,7 +10,7 @@ Start-Sleep -Seconds 5
 $logPath = 'C:\Users\User\Documents\quote-app\tunnel-log.txt'
 
 # Start Cloudflare Tunnel in another PowerShell window and log its output
-$cfCommand = "cd 'C:\Users\User\Downloads'; .\cloudflared.exe tunnel --url http://localhost:3000 2>&1 | Tee-Object -FilePath '$logPath' -Append"
+$cfCommand = "cd 'C:\Users\User\Downloads'; .\cloudflared.exe tunnel  run maruquote 2>&1 | Tee-Object -FilePath '$logPath' -Append"
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $cfCommand
 
 Write-Host "Cloudflare tunnel output is being logged to $logPath"

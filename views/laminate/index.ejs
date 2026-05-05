@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Laminate Pricing Calculator</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  :root { --blue:#1a56db; --light-blue:#ebf3ff; --green:#057a55; --bg:#f8fafc; --card:#ffffff; --border:#e2e8f0; --text:#1e293b; --muted:#64748b; --yellow:#fef9c3; --shadow:0 1px 3px rgba(0,0,0,.08); }
+  .laminate-layout { display:grid; grid-template-columns:1fr 380px; gap:20px; }
+  .laminate-card { background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .laminate-card-header { padding:14px 18px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
+  .laminate-card-body { padding:16px 18px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .laminate-layout label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:500; }
+  .laminate-layout input[type=text], .laminate-layout input[type=number], .laminate-layout select { width:100%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font-size:13px; background:#fff; color:var(--text); }
+  .yellow { background:var(--yellow) !important; }
+  .mat-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .mat-table th { background:#f1f5f9; padding:7px 8px; text-align:center; font-weight:600; font-size:11px; color:var(--muted); border:1px solid var(--border); }
+  .mat-table td { border:1px solid var(--border); padding:5px 6px; }
+  .mat-table td.name { font-weight:500; min-width:150px; }
+  .mat-table input[type=number] { padding:4px 6px; font-size:12px; }
+  .mat-table input[readonly] { background:#f8fafc; color:#475569; cursor:not-allowed; }
+  .mat-table tr.inactive td { opacity:.45; }
+  .helper-note { margin-top:8px; font-size:12px; color:#64748b; }
+  .mat-table td.calc { background:#f8fafc; color:var(--blue); font-weight:600; text-align:right; padding-right:8px; }
+  .poly-options { margin-top:8px; display:flex; flex-direction:column; gap:6px; font-size:11px; color:var(--text); }
+  .poly-options label { display:flex; align-items:center; gap:6px; margin:0; font-size:11px; color:var(--text); }
+  .poly-options input[type=checkbox] { width:auto; }
+  .poly-options input[type=number] { width:90px; padding:4px 6px; font-size:11px; }
+  .poly-options .inline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .results { display:flex; flex-direction:column; gap:16px; }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f1f5f9; }
+  .result-row:last-child { border-bottom:none; }
+  .result-label { color:var(--muted); font-size:12px; }
+  .result-val { font-weight:700; font-size:13px; }
+  .highlight-box { border-radius:10px; padding:16px; text-align:center; margin-bottom:4px; color:#fff; }
+  .highlight-box.primary { background:linear-gradient(135deg,#1a56db,#2563eb); }
+  .highlight-box.success { background:linear-gradient(135deg,#057a55,#16a34a); }
+  .highlight-box .big-num { font-size:28px; font-weight:800; margin:6px 0 2px; }
+  .highlight-box .sub { font-size:11px; opacity:.85; }
+  .btn-row { display:flex; gap:12px; margin-top:8px; }
+  .divider { border:none; border-top:1px solid var(--border); margin:12px 0; }
+  .geo-badge { display:inline-flex; align-items:center; gap:6px; background:var(--light-blue); color:var(--blue); padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-right:6px; margin-bottom:6px; }
+  .toggle-pouching { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:12px; }
+  .notice { margin-top:12px; font-size:12px; color:#0f766e; }
+  .top-actions { display:flex; gap:10px; margin-top:10px; }
+  .top-link-btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--blue); text-decoration:none; font-size:13px; font-weight:600; }
+  @media (max-width: 900px) { .laminate-layout { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<% var title='Laminate App'; var activePage='laminate'; %>
+<%- include('../layout') %>
+<div class="page-header">
+  <div>
+    <h1>Laminate Pricing Calculator</h1>
+    <p>Saved defaults and quote-safe integration.</p>
+    <div class="top-actions">
+      <a class="top-link-btn" href="/laminate/rates">Open Raw Material Master</a>
+    </div>
+  </div>
+</div>
+<div class="laminate-layout">
+  <div>
+    <div class="laminate-card"><div class="laminate-card-header">Product Information</div><div class="laminate-card-body"><div class="grid2" style="margin-bottom:12px"><div><label>Product Name</label><input class="yellow" type="text" id="productName"></div><div><label>Product Type</label><select class="yellow" id="productType" onchange="handleProductTypeChange()"><option value="laminate-roll-shape">Laminate Roll Shape</option><option value="laminate-pouch-shape">Laminate Pouch Shape</option></select></div></div><div class="grid2" style="margin-bottom:12px"><div id="pouchTypeWrap" style="display:none"><label>Pouch Type</label><select class="yellow" id="pouchType"><option value="normal-pouch">Normal Pouch</option><option value="zipper-pouch">Zipper Pouch</option></select></div><div><label>Specification</label><input type="text" id="specification"></div></div><div class="grid3"><div><label>Width (mm)</label><input class="yellow" type="number" id="width"></div><div><label>Height (mm)</label><input class="yellow" type="number" id="height"></div><div><label>Gussette (mm)</label><input class="yellow" type="number" id="gussette"></div></div></div></div>
+    <div class="laminate-card"><div class="laminate-card-header">Structure</div><div class="laminate-card-body"><div class="grid2"><div><label>PET (mic)</label><input class="yellow" type="number" id="petMic"></div><div><label>Poly (mic)</label><input class="yellow" type="number" id="polyMic"></div><div><label>MET PET</label><input class="yellow" type="number" id="metPet"></div><div><label>AL Foil</label><input class="yellow" type="number" id="alFoil"></div></div></div></div>
+    <div class="laminate-card"><div class="laminate-card-header">Raw Materials</div><div class="laminate-card-body" style="overflow-x:auto"><table class="mat-table"><thead><tr><th>Active</th><th style="text-align:left">RM / Description</th><th>GSM</th><th>Density</th><th>Rate/kg (₹)</th><th>Wastage %</th><th>Cost/kg (₹)</th><th>Cost/1000pcs (₹)</th></tr></thead><tbody id="materialBody"></tbody><tfoot><tr><td colspan="2" style="text-align:right; font-weight:700; background:#f8fafc">Total GSM</td><td style="font-weight:700; background:#f8fafc; text-align:right" id="total-gsm-cell">0.00</td><td colspan="5" style="background:#f8fafc"></td></tr></tfoot></table><div class="helper-note">Rate/kg and wastage % are locked here. Admin can update them from the separate Raw Material Master. <a href="/laminate/rates">Open Raw Material Master</a></div></div></div>
+    <div class="laminate-card"><div class="laminate-card-header">Contributions and Freight</div><div class="laminate-card-body"><div class="toggle-pouching"><input type="checkbox" id="hasPouchingProcess"><label for="hasPouchingProcess" style="margin:0; color:var(--text); font-size:13px; cursor:pointer">Pouching Process Enabled</label></div><div class="grid3"><div><label>Contribution – Roll Shape (₹/kg)</label><input class="yellow" type="number" id="contributionRollShape"></div><div><label>Contribution – Pouching (₹/kg)</label><input class="yellow" type="number" id="contributionPouching"></div><div><label>Freight (₹/kg)</label><input class="yellow" type="number" id="freightPerKg"></div></div><div style="margin-top:12px; max-width:200px"><label>Pouching Wastage (%)</label><input class="yellow" type="number" id="pouchingWastage" step="0.01"></div><div class="btn-row"><button class="btn btn-primary" onclick="calculate()">Calculate Pricing</button><button class="btn btn-secondary" onclick="saveDefaults()">Save Defaults</button></div><div class="notice" id="saveNotice"></div></div></div>
+  </div>
+  <div class="results"><div class="laminate-card"><div class="laminate-card-header">Geometry</div><div class="laminate-card-body" id="geoPanel"></div></div><div class="laminate-card"><div class="laminate-card-header">Cost Summary</div><div class="laminate-card-body" id="costPanel"></div></div><div class="laminate-card"><div class="laminate-card-header">Selling Price (SSP)</div><div class="laminate-card-body" id="sspPanel"></div></div></div>
+</div>
+<%- include('../layout_footer') %>
+<script>
+let MATERIALS = [];
+const AUTO_GSM_RULES = [
+  { match: name => name.includes('polyester'), structureKey: 'petMic' },
+  { match: name => name.includes('transparent poly'), structureKey: 'polyMic' },
+  { match: name => name.includes('met pet'), structureKey: 'metPet' },
+  { match: name => name.includes('al foil'), structureKey: 'alFoil' },
+];
+function fmt(n, dec=2) { return isNaN(n) ? '—' : Number(n).toFixed(dec); }
+function fmtK(n) { return '₹ ' + fmt(n, 2); }
+function getStructureInputs() { return { petMic:parseFloat(document.getElementById('petMic').value)||0, polyMic:parseFloat(document.getElementById('polyMic').value)||0, metPet:parseFloat(document.getElementById('metPet').value)||0, alFoil:parseFloat(document.getElementById('alFoil').value)||0 }; }
+function getAutoGsm(mat, structure) { const name=String(mat.name||'').toLowerCase(); const rule=AUTO_GSM_RULES.find(r=>r.match(name)); if(!rule) return Number(mat.gsm||0); return Number(structure[rule.structureKey]||0) * Number(mat.density||0); }
+function updateTotalGsm() { const total=MATERIALS.filter(mat=>mat.active).reduce((sum,mat)=>sum+(Number(mat.gsm)||0),0); const cell=document.getElementById('total-gsm-cell'); if(cell) cell.textContent=total.toFixed(2); }
+function syncDerivedMaterials() { const structure=getStructureInputs(); MATERIALS=MATERIALS.map((mat,i)=>{ const gsm=getAutoGsm(mat, structure); const updated={ ...mat, gsm:Number(gsm.toFixed(4)) }; const gsmInput=document.getElementById(`mat-gsm-${i}`); const densityInput=document.getElementById(`mat-density-${i}`); if(gsmInput) gsmInput.value=updated.gsm; if(densityInput) densityInput.value=Number(updated.density||0).toFixed(4).replace(/\.0000$/,''); return updated; }); updateTotalGsm(); }
+function renderPolyOptions(mat, i) {
+  const name = String(mat.name || '').toLowerCase();
+  if (name.includes('transparent poly')) {
+    const opts = mat.polyOptions || { natural:true, milky:false, metallocene:false, metallocenePct:0 };
+    return `<div class="poly-options">
+      <label><input type="checkbox" ${opts.natural !== false ? 'checked' : ''} onchange="updatePolyOption(${i}, 'natural', this.checked)"> Natural</label>
+      <label><input type="checkbox" ${opts.milky ? 'checked' : ''} onchange="updatePolyOption(${i}, 'milky', this.checked)"> Milky (+₹5/kg)</label>
+      <div class="inline">
+        <label><input type="checkbox" ${opts.metallocene ? 'checked' : ''} onchange="updatePolyOption(${i}, 'metallocene', this.checked)"> Metallocene</label>
+        <label>Metallocene % <input type="number" min="0" step="10" value="${opts.metallocenePct || 0}" ${opts.metallocene ? '' : 'disabled'} onchange="updatePolyMetallocenePct(${i}, this.value)"></label>
+        <span>(+₹2/kg for every 10%)</span>
+      </div>
+    </div>`;
+  }
+  if (name === 'ink') {
+    const ink = mat.inkOptions || { whiteCoating:false };
+    return `<div class="poly-options">
+      <label><input type="radio" name="ink-coating-${i}" ${ink.whiteCoating ? '' : 'checked'} onchange="updateInkOption(${i}, false)"> Without white coating (Ink GSM = 1.0)</label>
+      <label><input type="radio" name="ink-coating-${i}" ${ink.whiteCoating ? 'checked' : ''} onchange="updateInkOption(${i}, true)"> With white coating (Ink GSM = 1.6)</label>
+    </div>`;
+  }
+  return '';
+}
+function renderMaterialTable() { const tbody = document.getElementById('materialBody'); tbody.innerHTML=''; MATERIALS.forEach((mat,i)=>{ const row=document.createElement('tr'); row.id=`mat-row-${i}`; if(!mat.active) row.classList.add('inactive'); row.innerHTML=`<td style="text-align:center"><input type="checkbox" ${mat.active?'checked':''} onchange="toggleMat(${i}, this.checked)"/></td><td class="name"><input type="hidden" value="${mat.id||''}" id="mat-id-${i}">${mat.name}${renderPolyOptions(mat, i)}</td><td><input type="number" id="mat-gsm-${i}" value="${mat.gsm}" step="0.01" readonly/></td><td><input type="number" id="mat-density-${i}" value="${mat.density}" step="0.01" readonly/></td><td><input type="number" value="${mat.ratePerKg}" step="1" readonly/></td><td><input type="number" value="${(mat.wastage*100).toFixed(4)}" step="0.01" readonly/></td><td class="calc" id="mc-cpkg-${i}">—</td><td class="calc" id="mc-cp1k-${i}">—</td>`; tbody.appendChild(row); }); syncDerivedMaterials(); }
+function toggleMat(i, checked) { MATERIALS[i].active=checked; document.getElementById(`mat-row-${i}`).classList.toggle('inactive', !checked); updateTotalGsm(); calculate(); }
+function updatePolyOption(i, key, checked) {
+  MATERIALS[i].polyOptions = MATERIALS[i].polyOptions || { natural:true, milky:false, metallocene:false, metallocenePct:0 };
+  MATERIALS[i].polyOptions[key] = checked;
+  if (key === 'metallocene' && !checked) MATERIALS[i].polyOptions.metallocenePct = 0;
+  renderMaterialTable();
+  calculate();
+}
+function updatePolyMetallocenePct(i, value) {
+  MATERIALS[i].polyOptions = MATERIALS[i].polyOptions || { natural:true, milky:false, metallocene:false, metallocenePct:0 };
+  MATERIALS[i].polyOptions.metallocenePct = parseFloat(value) || 0;
+  calculate();
+}
+function updateInkOption(i, whiteCoating) {
+  MATERIALS[i].inkOptions = MATERIALS[i].inkOptions || { whiteCoating:false };
+  MATERIALS[i].inkOptions.whiteCoating = whiteCoating;
+  syncDerivedMaterials();
+  renderMaterialTable();
+  calculate();
+}
+function updateMat(i, field, value) { MATERIALS[i][field]=parseFloat(value)||0; }
+function handleProductTypeChange() {
+  const productType = document.getElementById('productType').value;
+  const wrap = document.getElementById('pouchTypeWrap');
+  if (wrap) wrap.style.display = productType === 'laminate-pouch-shape' ? 'block' : 'none';
+}
+function getInputs() { return { productName:document.getElementById('productName').value, productType:document.getElementById('productType').value, pouchType:document.getElementById('pouchType').value, specification:document.getElementById('specification').value, width:parseFloat(document.getElementById('width').value)||0, height:parseFloat(document.getElementById('height').value)||0, gussette:parseFloat(document.getElementById('gussette').value)||0, structure:getStructureInputs(), contributionRollShape:parseFloat(document.getElementById('contributionRollShape').value)||0, contributionPouching:parseFloat(document.getElementById('contributionPouching').value)||0, freightPerKg:parseFloat(document.getElementById('freightPerKg').value)||0, pouchingWastage:(parseFloat(document.getElementById('pouchingWastage').value)||0)/100, hasPouchingProcess:document.getElementById('hasPouchingProcess').checked, materials:MATERIALS.map(m=>({ ...m, id:m.id||null })) }; }
+async function loadDefaults() { const res=await fetch('/api/laminate/defaults'); const data=await res.json(); document.getElementById('productName').value=data.productName; document.getElementById('productType').value=data.productType || 'laminate-roll-shape'; document.getElementById('pouchType').value=data.pouchType || 'normal-pouch'; handleProductTypeChange(); document.getElementById('specification').value=data.specification; document.getElementById('width').value=data.width; document.getElementById('height').value=data.height; document.getElementById('gussette').value=data.gussette; document.getElementById('petMic').value=data.structure.petMic; document.getElementById('polyMic').value=data.structure.polyMic; document.getElementById('metPet').value=data.structure.metPet; document.getElementById('alFoil').value=data.structure.alFoil; document.getElementById('contributionRollShape').value=data.contributionRollShape; document.getElementById('contributionPouching').value=data.contributionPouching; document.getElementById('freightPerKg').value=data.freightPerKg; document.getElementById('pouchingWastage').value=(data.pouchingWastage*100).toFixed(2); document.getElementById('hasPouchingProcess').checked=!!data.hasPouchingProcess; MATERIALS=data.materials; renderMaterialTable(); ['petMic','polyMic','metPet','alFoil'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=>{ syncDerivedMaterials(); calculate(); }); }); calculate(); }
+async function calculate() { const res=await fetch('/api/laminate/calculate',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(getInputs()) }); const data=await res.json(); if(!data.success) return alert('Error: '+data.error); renderResults(data.result, getInputs()); }
+async function saveDefaults() { const res=await fetch('/api/laminate/save-defaults',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(getInputs()) }); const data=await res.json(); const notice=document.getElementById('saveNotice'); if(data.success){ notice.textContent='Defaults saved.'; setTimeout(()=>notice.textContent='',2500);} else { notice.textContent='Save failed: '+data.error; } }
+function renderResults(r, inputs) { r.materials.forEach((m,i)=>{ const a=document.getElementById(`mc-cpkg-${i}`), b=document.getElementById(`mc-cp1k-${i}`); if(a) a.textContent=fmtK(m.costPerKg); if(b) b.textContent=fmtK(m.costPer1000pcs); }); document.getElementById('geoPanel').innerHTML=`<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px"><span class="geo-badge">GSM: ${fmt(r.geometry.totalGSM,2)}</span><span class="geo-badge">${fmt(r.geometry.weightPerPouch,3)} g/pouch</span><span class="geo-badge">${fmt(r.geometry.yieldPerKg,1)} pcs/kg</span></div><div class="result-row"><span class="result-label">Area per pouch</span><span class="result-val">${fmt(r.geometry.areaM2*1e6,0)} mm²</span></div><div class="result-row"><span class="result-label">Weight per pouch</span><span class="result-val">${fmt(r.geometry.weightPerPouch,4)} g</span></div><div class="result-row"><span class="result-label">Yield per kg</span><span class="result-val">${fmt(r.geometry.yieldPerKg,2)} pcs</span></div>`; document.getElementById('costPanel').innerHTML=`<div class="result-row"><span class="result-label">Total RM Cost / kg</span><span class="result-val">${fmtK(r.totals.totalCostPerKg)}</span></div><div class="result-row"><span class="result-label">Total RM Cost / 1000 pcs</span><span class="result-val">${fmtK(r.totals.totalCostPer1000)}</span></div>${inputs.hasPouchingProcess?`<div class="result-row"><span class="result-label">Pouching Wastage / kg</span><span class="result-val">${fmtK(r.totals.pouchingWastagePerKg)}</span></div><div class="result-row"><span class="result-label">Pouching Wastage / 1000 pcs</span><span class="result-val">${fmtK(r.totals.pouchingWastagePer1000)}</span></div>`:''}<hr class="divider"/><div class="result-row"><span class="result-label"><strong>Sub-Total RM / kg</strong></span><span class="result-val"><strong>${fmtK(r.totals.subTotalRMCostPerKg)}</strong></span></div><div class="result-row"><span class="result-label"><strong>Sub-Total RM / 1000 pcs</strong></span><span class="result-val"><strong>${fmtK(r.totals.subTotalRMCost1000)}</strong></span></div><hr class="divider"/><div class="result-row"><span class="result-label">Contribution – Roll Shape</span><span class="result-val">${fmtK(r.pricing.contributionRollShape.perKg)} / kg</span></div><div class="result-row"><span class="result-label">Contribution – Pouching</span><span class="result-val">${fmtK(r.pricing.contributionPouching.perKg)} / kg</span></div><div class="result-row"><span class="result-label">Freight</span><span class="result-val">${fmtK(r.pricing.freight.perKg)} / kg</span></div><div class="result-row"><span class="result-label">Net Contribution / kg</span><span class="result-val">${fmtK(r.pricing.netContribPerKg)}</span></div>`; document.getElementById('sspPanel').innerHTML=`<div class="highlight-box primary"><div class="sub">SSP per kg</div><div class="big-num">₹ ${fmt(r.pricing.sspPerKg,2)}</div></div><div class="highlight-box success"><div class="sub">SSP per pouch</div><div class="big-num">₹ ${fmt(r.pricing.sspPerPouch,3)}</div></div><hr class="divider"/><div class="result-row"><span class="result-label">SSP / 1000 pcs</span><span class="result-val"><strong>${fmtK(r.pricing.sspPer1000)}</strong></span></div><div class="result-row"><span class="result-label">Net Contribution / 1000 pcs</span><span class="result-val">${fmtK(r.pricing.netContribPer1000)}</span></div>`; }
+loadDefaults();
+</script>
+</body>
+</html>

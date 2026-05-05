@@ -6,6 +6,7 @@
     <p class="subtitle">Created by <%=quote.creator_name%> on <%=new Date(quote.created_at).toLocaleString('en-IN')%></p></div>
   <div class="header-actions">
     <span class="badge <%=sc[quote.status]||'badge-gray'%> badge-lg"><%=quote.status.toUpperCase()%></span>
+    <a href="/quotes/<%=quote.id%>/pdf" class="btn btn-outline" target="_blank" rel="noopener">📄 Download PDF</a>
     <a href="/quotes/<%=quote.id%>/edit" class="btn btn-secondary">✏️ Edit</a>
     <a href="/quotes" class="btn btn-ghost">← Back</a>
   </div>

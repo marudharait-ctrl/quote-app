@@ -19,8 +19,10 @@
     </a>
   </div>
   <div class="nav-links">
+    <a href="/" class="<%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'active' : '' %>">🏠 Home</a>
     <a href="/quotes" class="<%= typeof activePage !== 'undefined' && activePage === 'quotes' ? 'active' : '' %>">📋 Quotes</a>
     <a href="/quotes/new" class="<%= typeof activePage !== 'undefined' && activePage === 'new' ? 'active' : '' %>">➕ New Quote</a>
+    <a href="/laminate" class="<%= typeof activePage !== 'undefined' && activePage === 'laminate' ? 'active' : '' %>">📦 Laminate App</a>
     <a href="/admin/pricing/master" class="<%= typeof activePage !== 'undefined' && activePage === 'master' ? 'active' : '' %>">📊 Rate Sheet</a>
     <% if (user.userRole === 'admin') { %>
     <a href="/admin" class="<%= typeof activePage !== 'undefined' && activePage === 'admin' ? 'active' : '' %>">⚙️ Admin</a>

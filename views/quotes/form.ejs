@@ -19,7 +19,12 @@
     <h1><%= isEdit ? '✏️ Edit Quote — ' + quote.quote_number : '➕ New Quote' %></h1>
     <p class="subtitle">Fill in product specifications to calculate pricing</p>
   </div>
-  <a href="<%= isEdit ? '/quotes/' + quote.id : '/quotes' %>" class="btn btn-secondary">← Back</a>
+  <div class="header-actions">
+    <% if (isEdit) { %>
+      <a href="/quotes/<%= quote.id %>/pdf" class="btn btn-outline" target="_blank" rel="noopener">📄 Download PDF</a>
+    <% } %>
+    <a href="<%= isEdit ? '/quotes/' + quote.id : '/quotes' %>" class="btn btn-secondary">← Back</a>
+  </div>
 </div>
 
 <% if (error) { %>

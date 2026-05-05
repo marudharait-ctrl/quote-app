@@ -1,10 +1,13 @@
 const express = require('express');
+const path = require('path');
 const { prepare: dbPrepare } = require('../models/db');
 const db = { prepare: dbPrepare };
 const { requireAuth } = require('../middleware/auth');
 const { calculatePrice } = require('../utils/pricing');
 const { generateQuoteNumber } = require('../utils/quoteNumber');
+const PDFDocument = require('pdfkit');
 const router = express.Router();
+const logoPath = path.join(__dirname, '../../public/logo.png');
 
 // ─── List quotes ────────────────────────────────────────────────────────────
 router.get('/', requireAuth, (req, res) => {
@@ -123,6 +126,242 @@ router.get('/:id/edit', requireAuth, (req, res) => {
     return res.status(403).render('error', { message: 'Access denied', user: req.session });
   const result = calculatePrice(buildInputsFromQuote(quote));
   res.render('quotes/form', { quote, result, user: req.session, error: null });
+});
+
+router.get('/:id/pdf', requireAuth, (req, res) => {
+  const quote = db.prepare('SELECT q.*, u.full_name as creator_name FROM quotes q JOIN users u ON u.id = q.created_by WHERE q.id = ?').get(req.params.id);
+  if (!quote) return res.status(404).render('error', { message: 'Quote not found', user: req.session });
+  if (req.session.userRole !== 'admin' && quote.created_by !== req.session.userId)
+    return res.status(403).render('error', { message: 'Access denied', user: req.session });
+
+  const result = calculatePrice(buildInputsFromQuote(quote));
+  const doc = new PDFDocument({ margin: 36, size: 'A4', bufferPages: true });
+  const filename = `${quote.quote_number}.pdf`;
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  doc.pipe(res);
+
+  const colors = {
+    text: '#111827',
+    muted: '#6b7280',
+    line: '#e5e7eb',
+    accent: '#8b1a1a',
+    accentLight: '#fdf2f2',
+    dark: '#1f2937',
+    success: '#166534'
+  };
+
+  function currency(value) {
+    return `₹${Number(value || 0).toFixed(2)}`;
+  }
+
+  function ensureSpace(height) {
+    if (doc.y + height > doc.page.height - 60) {
+      doc.addPage();
+    }
+  }
+
+  function drawHeader() {
+    const top = 24;
+    if (doc.page.number === 1) {
+      doc.save()
+        .roundedRect(36, top, doc.page.width - 72, 96, 12)
+        .fill(colors.accentLight)
+        .restore();
+
+      try {
+        doc.image(logoPath, 50, top + 14, { fit: [80, 60], align: 'left' });
+      } catch (e) {
+        // ignore logo load issues, PDF still renders
+      }
+
+      doc.font('Helvetica-Bold').fontSize(22).fillColor(colors.accent)
+        .text('Marudhara Polypack Quote', 145, top + 18);
+      doc.font('Helvetica').fontSize(10).fillColor(colors.muted)
+        .text('Professional woven bag quotation', 145, top + 46);
+      doc.font('Helvetica-Bold').fontSize(18).fillColor(colors.dark)
+        .text(quote.quote_number, 145, top + 64);
+      doc.font('Helvetica').fontSize(9).fillColor(colors.muted)
+        .text(`Generated: ${new Date().toLocaleString('en-IN')}`, doc.page.width - 210, top + 22, { width: 160, align: 'right' })
+        .text(`Prepared by: ${quote.creator_name}`, doc.page.width - 210, top + 38, { width: 160, align: 'right' })
+        .text(`Status: ${String(quote.status || 'draft').toUpperCase()}`, doc.page.width - 210, top + 54, { width: 160, align: 'right' });
+
+      doc.y = 138;
+    } else {
+      doc.font('Helvetica-Bold').fontSize(12).fillColor(colors.accent)
+        .text(`Marudhara Polypack • ${quote.quote_number}`, 36, 24);
+      doc.moveTo(36, 42).lineTo(doc.page.width - 36, 42).strokeColor(colors.line).stroke();
+      doc.y = 56;
+    }
+  }
+
+  function drawFooter() {
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+      doc.switchToPage(range.start + i);
+      const footerY = doc.page.height - 34;
+      doc.moveTo(36, footerY - 8).lineTo(doc.page.width - 36, footerY - 8).strokeColor(colors.line).stroke();
+      doc.font('Helvetica').fontSize(8).fillColor(colors.muted)
+        .text('Marudhara Polypack', 36, footerY, { width: 200, align: 'left' })
+        .text(`Page ${i + 1} of ${range.count}`, 0, footerY, { align: 'center' })
+        .text(`Prepared by ${quote.creator_name}`, doc.page.width - 236, footerY, { width: 200, align: 'right' });
+    }
+  }
+
+  function section(title) {
+    ensureSpace(34);
+    doc.moveDown(0.6);
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(colors.dark).text(title);
+    doc.moveTo(36, doc.y + 4).lineTo(doc.page.width - 36, doc.y + 4).strokeColor(colors.line).stroke();
+    doc.moveDown(0.6);
+  }
+
+  function keyValueGrid(items, columns = 2) {
+    const colGap = 16;
+    const usableWidth = doc.page.width - 72;
+    const colWidth = (usableWidth - colGap * (columns - 1)) / columns;
+    const rowHeight = 34;
+
+    for (let i = 0; i < items.length; i += columns) {
+      ensureSpace(rowHeight + 8);
+      const rowItems = items.slice(i, i + columns);
+      const y = doc.y;
+
+      rowItems.forEach((item, index) => {
+        const x = 36 + index * (colWidth + colGap);
+        doc.font('Helvetica').fontSize(8).fillColor(colors.muted)
+          .text(item.label, x, y, { width: colWidth });
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(colors.text)
+          .text(item.value || '—', x, y + 12, { width: colWidth });
+      });
+
+      doc.y = y + rowHeight;
+    }
+  }
+
+  function metricCards(items) {
+    const gap = 12;
+    const width = (doc.page.width - 72 - gap) / 2;
+    ensureSpace(84);
+    const y = doc.y;
+
+    items.forEach((item, index) => {
+      const x = 36 + index * (width + gap);
+      doc.save()
+        .roundedRect(x, y, width, 64, 10)
+        .fill(index === 0 ? '#eff6ff' : '#f0fdf4')
+        .restore();
+      doc.font('Helvetica').fontSize(9).fillColor(colors.muted)
+        .text(item.label, x + 14, y + 12, { width: width - 28, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(20).fillColor(index === 0 ? '#1d4ed8' : colors.success)
+        .text(item.value, x + 14, y + 28, { width: width - 28, align: 'center' });
+    });
+
+    doc.y = y + 76;
+  }
+
+  function simpleTable(title, rows) {
+    section(title);
+    rows.forEach((row) => {
+      ensureSpace(24);
+      const y = doc.y;
+      doc.font('Helvetica').fontSize(9).fillColor(colors.text)
+        .text(row.label, 36, y, { width: 300 });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.dark)
+        .text(row.value, doc.page.width - 220, y, { width: 184, align: 'right' });
+      doc.moveTo(36, y + 16).lineTo(doc.page.width - 36, y + 16).strokeColor('#f3f4f6').stroke();
+      doc.y = y + 20;
+    });
+  }
+
+  drawHeader();
+
+  metricCards([
+    { label: 'Final Price per Bag', value: currency(quote.final_price_per_bag) },
+    { label: 'Final Price per Kg', value: currency(quote.final_price_per_kg) }
+  ]);
+
+  section('Customer Information');
+  keyValueGrid([
+    { label: 'Customer Name', value: quote.customer_name },
+    { label: 'Company', value: quote.customer_company || '—' },
+    { label: 'Email', value: quote.customer_email || '—' },
+    { label: 'Prepared By', value: quote.creator_name }
+  ]);
+
+  section('Quote Summary');
+  keyValueGrid([
+    { label: 'Quote Number', value: quote.quote_number },
+    { label: 'Status', value: String(quote.status || 'draft').toUpperCase() },
+    { label: 'Created On', value: new Date(quote.created_at).toLocaleString('en-IN') },
+    { label: 'Last Updated', value: quote.updated_at ? new Date(quote.updated_at).toLocaleString('en-IN') : '—' }
+  ]);
+
+  section('Product Specifications');
+  keyValueGrid([
+    { label: 'Size (W × L)', value: `${quote.width_value} × ${quote.length_value} ${quote.width_unit}` },
+    { label: 'Bag Style', value: quote.bag_style },
+    { label: 'Fabric', value: `${quote.fabric_gsm} ${quote.fabric_type}` },
+    { label: 'Filler Content', value: `${quote.filler_pct}%` },
+    { label: 'Lamination', value: `${quote.lamination_included} | ${quote.lamination_side} | ${quote.lamination_gsm} GSM` },
+    { label: 'BOPP', value: `${quote.bopp_included} | ${quote.bopp_side} | ${quote.bopp_micron} micron` },
+    { label: 'BOPP Type / Finish', value: `${quote.bopp_type} / ${quote.bopp_finish}` },
+    { label: 'Back Flexo', value: quote.back_flexo },
+    { label: 'Metalize', value: quote.metalize_included === 'Yes' ? `${quote.metalize_side} | ${quote.metalize_micron} micron` : quote.metalize_included },
+    { label: 'Handle', value: quote.handle_included },
+    { label: 'Liner', value: quote.liner_included === 'Yes' ? `${quote.liner_width} × ${quote.liner_length} | ${quote.liner_thickness} ${quote.liner_thickness_unit}` : quote.liner_included },
+    { label: 'Freight', value: quote.freight }
+  ]);
+
+  if (quote.notes) {
+    section('Notes');
+    ensureSpace(40);
+    doc.font('Helvetica').fontSize(10).fillColor(colors.text)
+      .text(quote.notes, 36, doc.y, { width: doc.page.width - 72, lineGap: 3 });
+  }
+
+  simpleTable('Pricing Summary', [
+    { label: 'Final Price / Bag', value: currency(quote.final_price_per_bag) },
+    { label: 'Final Price / Kg', value: currency(quote.final_price_per_kg) },
+    { label: 'SSP Rate / Bag', value: currency(result.sspRatePerBag) },
+    { label: 'SSP Rate / Kg', value: currency(result.sspRatePerKg) },
+    { label: 'Raw Material Total / Bag', value: currency(result.rmPricePerBag) },
+    { label: 'Total Weight', value: `${Number(result.totalWtWithLiner || 0).toFixed(2)} gm` },
+    { label: 'Average Contribution / Kg', value: currency(((Number(quote.final_price_per_bag || 0) - Number(result.rmPricePerBag || 0)) * 1000) / Number(result.totalWtWithLiner || 1)) },
+    { label: 'Pricing Type', value: `${quote.pricing_type} (${quote.discount_pct}%)` }
+  ]);
+
+  simpleTable('Raw Material Breakdown', [
+    { label: 'PP Fabric + Filler', value: `${currency(result.ppFabricAmt)}/bag | ${Number(result.fabricWt || 0).toFixed(1)} gm` },
+    { label: 'Lamination', value: `${currency(result.lamCost)}/bag | ${Number(result.lamWt || 0).toFixed(1)} gm` },
+    { label: 'BOPP + Ink', value: `${currency(result.boppCost)}/bag | ${Number(result.boppWt || 0).toFixed(1)} gm` },
+    { label: 'Metalize', value: `${currency(result.metCost)}/bag | ${Number(result.metWt || 0).toFixed(1)} gm` },
+    { label: 'Handle', value: `${currency(result.handleCost)}/bag` },
+    { label: 'Liner', value: `${currency(result.linerCost)}/bag | ${Number(result.linerWt || 0).toFixed(1)} gm` },
+    { label: 'Flexo Ink Adjustment', value: `${currency(result.flexoInkAdjPerBag)}/bag | ${currency(result.flexoInkAdjPerKg)}/kg` },
+    { label: 'Adhesive Adjustment', value: `${currency(result.adhesiveAdjPerBag)}/bag` }
+  ]);
+
+  simpleTable('Conversion Cost Details', [
+    { label: 'Width Surcharge', value: currency(result.convDetails.widthSurcharge) },
+    { label: 'Bag Style', value: currency(result.convDetails.bagStyle) },
+    { label: 'BOPP Type', value: currency(result.convDetails.boppType) },
+    { label: 'Back Flexo', value: currency(result.convDetails.backFlexo) },
+    { label: 'Finish', value: currency(result.convDetails.finish) },
+    { label: 'Metalize', value: currency(result.convDetails.metalizeBase) },
+    { label: 'Metalize Window', value: currency(result.convDetails.metalizeWindows) },
+    { label: 'Valve', value: currency(result.convDetails.valve) },
+    { label: 'Hamming', value: currency(result.convDetails.hamming) },
+    { label: 'Tuber', value: currency(result.convDetails.tuber) },
+    { label: 'Handle Conversion', value: currency(result.convDetails.handleConv) },
+    { label: 'Liner Adjustment', value: currency(result.convDetails.linerConv) },
+    { label: 'Freight', value: currency(result.convDetails.freight) },
+    { label: 'Total Conversion / Kg', value: currency(result.convDetails.total) }
+  ]);
+
+  drawFooter();
+  doc.end();
 });
 
 router.post('/:id/edit', requireAuth, (req, res) => {

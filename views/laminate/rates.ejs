@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Raw Material Master</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  :root { --blue:#1a56db; --bg:#f8fafc; --card:#ffffff; --border:#e2e8f0; --text:#1e293b; --muted:#64748b; --shadow:0 1px 3px rgba(0,0,0,.08); }
+  .rm-master { max-width:1000px; margin:0 auto; }
+  .master-card { background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow); }
+  .master-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .master-body { padding:20px; }
+  .master-table { width:100%; border-collapse:collapse; }
+  .master-table th, .master-table td { border:1px solid var(--border); padding:10px; text-align:left; }
+  .master-table th { background:#f1f5f9; font-size:12px; color:var(--muted); }
+  .master-table input[type=number] { width:100%; border:1px solid var(--border); border-radius:6px; padding:8px 10px; }
+  .master-table input[readonly] { background:#f8fafc; color:#475569; cursor:not-allowed; }
+  .notice { margin-top:12px; color:#0f766e; font-size:13px; }
+  .warning { margin-bottom:12px; color:#b45309; font-size:13px; }
+</style>
+</head>
+<body>
+<% var title='Raw Material Master'; var activePage='laminate'; %>
+<%- include('../layout') %>
+<div class="page-header rm-master">
+  <div>
+    <h1>Raw Material Master</h1>
+    <p>Admin can manage raw material rate and wastage here.</p>
+  </div>
+</div>
+<div class="rm-master">
+  <div class="master-card">
+    <div class="master-header">
+      <strong>Raw Material Master</strong>
+      <% if (session?.userRole === 'admin') { %>
+        <button class="btn btn-primary" onclick="saveRates()">Save Changes</button>
+      <% } %>
+    </div>
+    <div class="master-body">
+      <% if (session?.userRole !== 'admin') { %>
+        <div class="warning">You can view this master, but only admin can save changes.</div>
+      <% } %>
+      <table class="master-table">
+        <thead>
+          <tr><th>RM / Description</th><th>Rate/kg (₹)</th><th>Wastage %</th></tr>
+        </thead>
+        <tbody id="rateBody"></tbody>
+      </table>
+      <div id="notice" class="notice"></div>
+    </div>
+  </div>
+</div>
+<%- include('../layout_footer') %>
+<script>
+let RATES = [];
+const IS_ADMIN = <%- JSON.stringify(session?.userRole === 'admin') %>;
+async function loadRates() {
+  const res = await fetch('/api/laminate/rates');
+  const data = await res.json();
+  RATES = data.rates || [];
+  const body = document.getElementById('rateBody');
+  body.innerHTML = '';
+  RATES.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${row.name}</td><td><input type="number" step="0.01" value="${row.ratePerKg}" ${IS_ADMIN ? '' : 'readonly'} onchange="updateRate(${i}, this.value)" /></td><td><input type="number" step="0.01" value="${((row.wastage || 0) * 100).toFixed(4)}" ${IS_ADMIN ? '' : 'readonly'} onchange="updateWastage(${i}, this.value)" /></td>`;
+    body.appendChild(tr);
+  });
+}
+function updateRate(i, value) { RATES[i].ratePerKg = parseFloat(value) || 0; }
+function updateWastage(i, value) { RATES[i].wastage = (parseFloat(value) || 0) / 100; }
+async function saveRates() {
+  if (!IS_ADMIN) return;
+  const res = await fetch('/api/laminate/rates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rates: RATES.map(r => ({ id: r.id, ratePerKg: r.ratePerKg, wastage: r.wastage })) })
+  });
+  const data = await res.json();
+  const notice = document.getElementById('notice');
+  notice.textContent = data.success ? 'Changes saved.' : ('Save failed: ' + (data.error || 'Unknown error'));
+  if (data.success) setTimeout(() => notice.textContent = '', 2500);
+}
+loadRates();
+</script>
+</body>
+</html>

@@ -74,10 +74,11 @@ async function start() {
   app.use('/admin',  require('./routes/admin'));
   app.use('/admin/pricing', require('./routes/pricing_config'));
   app.use('/api/whatsapp', require('./routes/whatsapp'));  // WhatsApp integration API
+  app.use('/', require('./routes/laminate'));
 
   app.get('/', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
-    res.redirect('/quotes');
+    res.render('dashboard', { user: req.session });
   });
 
   app.use((req, res) => res.status(404).render('error', { message: 'Page not found', user: req.session }));
