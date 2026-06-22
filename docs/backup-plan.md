@@ -96,20 +96,16 @@ Create a manual backup before:
 
 ## Backup Storage Layout
 
-Recommended private backup root:
+Selected private backup root:
 
 ```text
-Google Drive/MaruQuote Backups/
+G:\My Drive\Marudhara Quote App Backups/
   daily/
-    2026-06-22/
-      quotes.db
-      manifest.json
-      quote-app-source.zip
-      cloudflared-config.yml
-      cloudflared-credentials.json
+    maruquote-backup-YYYY-MM-DD-HHMMSS.zip
   weekly/
   monthly/
   restore-tests/
+  backup-log.txt
 ```
 
 Recommended backup file naming:
@@ -251,17 +247,44 @@ Google Drive/MaruQuote Backups/restore-tests/
 
 ## First Implementation Tasks
 
-1. Create the first manual backup.
-2. Choose backup target:
-   - Google Drive folder
-   - local external disk
-   - both
-3. Create `scripts/backup-quote-app.ps1`.
-4. Create `scripts/restore-quote-app.ps1`.
-5. Add scheduled task for daily 02:00 backup.
-6. Add backup verification and checksum manifest.
-7. Run first restore test from the backup.
-8. Document the restore test result.
+1. Create the first backup using `scripts/backup-quote-app.ps1`.
+2. Store it in Google Drive at `G:\My Drive\Marudhara Quote App Backups`.
+3. Register the daily Windows scheduled task with `scripts/register-daily-backup-task.ps1`.
+4. Use `scripts/restore-quote-app.ps1` for dry-run restore checks and controlled restores.
+5. Run first restore test from the backup.
+6. Document the restore test result.
+
+## Backup Commands
+
+Create a manual backup:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup-quote-app.ps1 -BackupType manual
+```
+
+Create a daily backup:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup-quote-app.ps1 -BackupType daily
+```
+
+Register the daily 02:00 backup task:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\register-daily-backup-task.ps1
+```
+
+Dry-run a restore without changing live files:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\restore-quote-app.ps1 -BackupZip "G:\My Drive\Marudhara Quote App Backups\daily\maruquote-backup-YYYY-MM-DD-HHMMSS.zip"
+```
+
+Apply a database restore only after confirming the dry run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\restore-quote-app.ps1 -BackupZip "G:\My Drive\Marudhara Quote App Backups\daily\maruquote-backup-YYYY-MM-DD-HHMMSS.zip" -Apply
+```
 
 ## Definition of Done
 
@@ -274,4 +297,3 @@ Backup is considered production-ready only when:
 - The restore steps are documented.
 - Naresh knows where the backup files are stored.
 - The latest backup status can be checked quickly.
-
